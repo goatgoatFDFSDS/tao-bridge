@@ -109,6 +109,7 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
   const [listingId, setListingId]               = useState(null);
   const [toast, setToast]                       = useState(null);
   const [stats, setStats]                       = useState({ sales: 0, volume: 0, topSale: 0 });
+  const [soldEvents, setSoldEvents]             = useState([]);
 
   // Fetch sales stats from Sold events
   useEffect(() => {
@@ -134,6 +135,13 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
           volume: parseFloat(ethers.formatEther(volume)),
           topSale: parseFloat(ethers.formatEther(topSale)),
         });
+        // Store events for Activity tab (most recent first)
+        setSoldEvents([...events].reverse().map(ev => ({
+          tokenId: ev.args.tokenId.toString(),
+          buyer: ev.args.buyer,
+          price: ev.args.price,
+          txHash: ev.transactionHash,
+        })));
       } catch {}
     }
     loadStats();
@@ -314,9 +322,10 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
               My NFTs ({myTokens.length})
             </button>
           )}
-          <button className="dir-tab" style={{ padding:'7px 14px', fontSize:'0.82rem' }}
-            onClick={() => { fetchListings(activeCollection); fetchMyTokens(activeCollection); }}>
-            Refresh
+          <button className={`dir-tab ${activeTab === 'activity' ? 'active' : ''}`}
+            style={{ padding:'7px 14px', fontSize:'0.82rem' }}
+            onClick={() => setActiveTab('activity')}>
+            Activity
           </button>
         </div>
 
@@ -427,6 +436,52 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
               </>
             )}
           </>
+        )}
+
+        {/* Activity tab */}
+        {activeTab === 'activity' && (
+          <div>
+            {soldEvents.length === 0 ? (
+              <div className="bridge-card" style={{ textAlign:'center', padding:'48px 24px' }}>
+                <div style={{ fontSize:'2.5rem', marginBottom:12 }}>📊</div>
+                <div style={{ fontWeight:600, marginBottom:6 }}>No sales yet</div>
+                <div style={{ color:'var(--text-muted)', fontSize:'0.88rem' }}>
+                  Sales history will appear here once NFTs are bought on the marketplace.
+                </div>
+              </div>
+            ) : (
+              <div className="bridge-card" style={{ padding:0, overflow:'hidden' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'2fr 3fr 2fr 1.5fr', gap:12, padding:'10px 18px', borderBottom:'1px solid var(--border)', fontSize:'0.75rem', color:'var(--text-muted)', fontWeight:600 }}>
+                  <div>Item</div><div>Buyer</div><div>Price</div><div>Tx</div>
+                </div>
+                {soldEvents.map((ev, i) => (
+                  <div key={`${ev.txHash}-${i}`}
+                    style={{ display:'grid', gridTemplateColumns:'2fr 3fr 2fr 1.5fr', gap:12, padding:'12px 18px', borderBottom: i < soldEvents.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', alignItems:'center' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <div style={{ width:32, height:32, borderRadius:6, background:'var(--bg-hover)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1rem', flexShrink:0 }}>τ</div>
+                      <span style={{ fontWeight:600, fontSize:'0.85rem' }}>#{ev.tokenId}</span>
+                    </div>
+                    <div style={{ fontFamily:'monospace', fontSize:'0.8rem', color:'var(--text-sub)' }}>
+                      {ev.buyer.slice(0,8)}...{ev.buyer.slice(-6)}
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:5, fontWeight:600, fontSize:'0.88rem' }}>
+                      <svg width="12" height="12" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="10" fill="#00d4aa" opacity="0.7" />
+                        <text x="10" y="14.5" textAnchor="middle" fill="white" fontSize="8" fontWeight="800" fontFamily="Inter">τ</text>
+                      </svg>
+                      {ethers.formatEther(ev.price)} TAO
+                    </div>
+                    <div>
+                      <a href={`https://evm.taostats.io/tx/${ev.txHash}`} target="_blank" rel="noreferrer"
+                        style={{ color:'var(--cyan)', textDecoration:'none', fontSize:'0.8rem', fontFamily:'monospace' }}>
+                        {ev.txHash.slice(0,8)}... ↗
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

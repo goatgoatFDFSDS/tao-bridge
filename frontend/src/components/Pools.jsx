@@ -7,32 +7,51 @@ const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4
 
 function PoolRow({ pair, address, signer, onRefresh }) {
   const { addLiquidityETH, removeLiquidityETH, PAIR_ABI } = usePools();
-  const [expanded, setExpanded]     = useState(false);
-  const [lpBalance, setLpBalance]   = useState('0');
-  const [amountETH, setAmountETH]   = useState('');
-  const [amountTok, setAmountTok]   = useState('');
-  const [removePct, setRemovePct]   = useState(100);
-  const [loading,   setLoading]     = useState(false);
-  const [txHash,    setTxHash]      = useState(null);
+  const [expanded,   setExpanded]   = useState(false);
+  const [mode,       setMode]       = useState('add');  // 'add' | 'remove'
+  const [lpBalance,  setLpBalance]  = useState('0');
+  const [taoBalance, setTaoBalance] = useState('0');
+  const [tokBalance, setTokBalance] = useState('0');
+  const [amountETH,  setAmountETH]  = useState('');
+  const [amountTok,  setAmountTok]  = useState('');
+  const [removePct,  setRemovePct]  = useState(100);
+  const [loading,    setLoading]    = useState(false);
+  const [txHash,     setTxHash]     = useState(null);
 
   const isWTAOPair = pair.token0.toLowerCase() === DEX_CONTRACTS.WTAO.toLowerCase()
                   || pair.token1.toLowerCase() === DEX_CONTRACTS.WTAO.toLowerCase();
-  const otherToken = isWTAOPair
-    ? (pair.token0.toLowerCase() === DEX_CONTRACTS.WTAO.toLowerCase() ? pair.token1 : pair.token0)
-    : null;
-  const otherMeta  = isWTAOPair
-    ? (pair.token0.toLowerCase() === DEX_CONTRACTS.WTAO.toLowerCase() ? pair.meta1 : pair.meta0)
-    : null;
+  const taoIsToken0 = pair.token0.toLowerCase() === DEX_CONTRACTS.WTAO.toLowerCase();
+  const otherToken  = isWTAOPair
+    ? (taoIsToken0 ? pair.token1 : pair.token0) : null;
+  const otherMeta   = isWTAOPair
+    ? (taoIsToken0 ? pair.meta1 : pair.meta0) : null;
+
+  const taoReserveF = parseFloat(ethers.formatEther(taoIsToken0 ? pair.reserve0 : pair.reserve1));
+  const tokReserveF = parseFloat(ethers.formatUnits(taoIsToken0 ? pair.reserve1 : pair.reserve0, otherMeta?.decimals || 18));
+  const priceRatio  = taoReserveF > 0 ? tokReserveF / taoReserveF : 0; // tokens per TAO
 
   useEffect(() => {
     if (!address) return;
     const provider = new ethers.JsonRpcProvider(BITTENSOR_RPC);
-    const pair_ = new ethers.Contract(pair.address, PAIR_ABI, provider);
-    pair_.balanceOf(address).then(b => setLpBalance(ethers.formatEther(b))).catch(() => {});
-  }, [address, pair.address, PAIR_ABI]);
+    new ethers.Contract(pair.address, PAIR_ABI, provider)
+      .balanceOf(address).then(b => setLpBalance(ethers.formatEther(b))).catch(() => {});
+    provider.getBalance(address).then(b => setTaoBalance(ethers.formatEther(b))).catch(() => {});
+    if (otherToken && otherMeta) {
+      new ethers.Contract(otherToken, ERC20_ABI, provider)
+        .balanceOf(address).then(b => setTokBalance(ethers.formatUnits(b, otherMeta.decimals))).catch(() => {});
+    }
+  }, [address, pair.address, PAIR_ABI, otherToken, otherMeta]);
 
-  const r0f = ethers.formatUnits(pair.reserve0, pair.meta0.decimals);
-  const r1f = ethers.formatUnits(pair.reserve1, pair.meta1.decimals);
+  const handleTAOInput = (val) => {
+    setAmountETH(val);
+    if (val && priceRatio > 0) setAmountTok((parseFloat(val) * priceRatio).toFixed(6));
+    else setAmountTok('');
+  };
+  const handleTokInput = (val) => {
+    setAmountTok(val);
+    if (val && priceRatio > 0) setAmountETH((parseFloat(val) / priceRatio).toFixed(6));
+    else setAmountETH('');
+  };
 
   const handleAdd = async () => {
     if (!signer || !isWTAOPair) return;
@@ -65,8 +84,13 @@ function PoolRow({ pair, address, signer, onRefresh }) {
     setLoading(false);
   };
 
+  const r0f = ethers.formatUnits(pair.reserve0, pair.meta0.decimals);
+  const r1f = ethers.formatUnits(pair.reserve1, pair.meta1.decimals);
+  const hasAmount = amountETH && parseFloat(amountETH) > 0;
+
   return (
     <div className="pool-row">
+      {/* Collapsed header */}
       <div className="pool-row-main" onClick={() => setExpanded(e => !e)}>
         <div style={{ display:'flex', alignItems:'center', gap:10, flex:1 }}>
           <div style={{ display:'flex', alignItems:'center' }}>
@@ -78,67 +102,134 @@ function PoolRow({ pair, address, signer, onRefresh }) {
             </div>
           </div>
           <div>
-            <div style={{ fontWeight:700, fontSize:'0.95rem' }}>
-              {pair.meta0.symbol}/{pair.meta1.symbol}
-            </div>
-            <div style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>
-              {pair.address.slice(0,8)}...{pair.address.slice(-6)}
-            </div>
+            <div style={{ fontWeight:700, fontSize:'0.95rem' }}>{pair.meta0.symbol}/{pair.meta1.symbol}</div>
+            <div style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>{pair.address.slice(0,8)}...{pair.address.slice(-6)}</div>
           </div>
         </div>
         <div style={{ textAlign:'right' }}>
           <div style={{ fontSize:'0.82rem', color:'var(--text-sub)' }}>Reserves</div>
-          <div style={{ fontSize:'0.88rem' }}>
-            {parseFloat(r0f).toFixed(4)} / {parseFloat(r1f).toFixed(4)}
-          </div>
+          <div style={{ fontSize:'0.88rem' }}>{parseFloat(r0f).toFixed(4)} / {parseFloat(r1f).toFixed(4)}</div>
         </div>
         {address && (
           <div style={{ textAlign:'right', minWidth:80 }}>
             <div style={{ fontSize:'0.82rem', color:'var(--text-sub)' }}>My LP</div>
-            <div style={{ fontSize:'0.88rem', color:'var(--cyan)' }}>
-              {parseFloat(lpBalance).toFixed(6)}
-            </div>
+            <div style={{ fontSize:'0.88rem', color:'var(--cyan)' }}>{parseFloat(lpBalance).toFixed(6)}</div>
           </div>
         )}
         <div style={{ color:'var(--text-muted)', fontSize:'0.8rem' }}>{expanded ? '▲' : '▼'}</div>
       </div>
 
+      {/* Expanded panel */}
       {expanded && isWTAOPair && (
         <div className="pool-expand">
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-            {/* Add Liquidity */}
-            <div>
-              <div style={{ fontWeight:600, fontSize:'0.88rem', marginBottom:10, color:'var(--cyan)' }}>Add Liquidity</div>
-              <label style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>TAO amount</label>
-              <input className="amount-input" style={{ width:'100%', marginBottom:8, marginTop:4 }} type="number" placeholder="0.0"
-                value={amountETH} onChange={e => setAmountETH(e.target.value)} />
-              <label style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>{otherMeta?.symbol} amount</label>
-              <input className="amount-input" style={{ width:'100%', marginBottom:12, marginTop:4 }} type="number" placeholder="0.0"
-                value={amountTok} onChange={e => setAmountTok(e.target.value)} />
-              <button className="btn-bridge" style={{ padding:'10px 0', width:'100%' }} onClick={handleAdd} disabled={loading || !signer}>
-                {loading ? <><div className="spinner" />Working...</> : 'Add Liquidity'}
-              </button>
+          {/* Header: pair name + badges + toggle button */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ fontWeight:700, fontSize:'0.97rem' }}>
+                TAO / {otherMeta?.symbol}
+              </span>
+              <span style={{ background:'rgba(59,130,246,0.12)', color:'#60a5fa', fontSize:'0.68rem', fontWeight:600, padding:'2px 7px', borderRadius:4, border:'1px solid rgba(59,130,246,0.2)' }}>v2</span>
+              <span style={{ background:'rgba(0,212,170,0.1)', color:'var(--cyan)', fontSize:'0.68rem', fontWeight:600, padding:'2px 7px', borderRadius:4, border:'1px solid rgba(0,212,170,0.18)' }}>0.3%</span>
             </div>
-            {/* Remove Liquidity */}
-            <div>
-              <div style={{ fontWeight:600, fontSize:'0.88rem', marginBottom:10, color:'var(--red)' }}>Remove Liquidity</div>
-              <div style={{ fontSize:'0.82rem', color:'var(--text-muted)', marginBottom:6 }}>
+            <button
+              onClick={e => { e.stopPropagation(); setMode(m => m === 'add' ? 'remove' : 'add'); setTxHash(null); }}
+              style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-input)', border:'1px solid var(--border)', borderRadius:8, padding:'6px 12px', cursor:'pointer', fontSize:'0.82rem', color:'var(--text-sub)', transition:'border-color .15s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(59,130,246,0.4)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              {mode === 'add' ? 'Remove' : 'Add'}
+            </button>
+          </div>
+
+          {/* Current price */}
+          {priceRatio > 0 && (
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:'0.75rem', color:'var(--text-muted)', marginBottom:3 }}>Current price</div>
+              <div style={{ fontSize:'1.0rem', fontWeight:600 }}>
+                {priceRatio.toFixed(6)}{' '}
+                <span style={{ color:'var(--text-muted)', fontWeight:400, fontSize:'0.85rem' }}>{otherMeta?.symbol}/TAO</span>
+              </div>
+            </div>
+          )}
+
+          {mode === 'add' ? (
+            <>
+              <div style={{ fontWeight:600, fontSize:'0.92rem', marginBottom:3 }}>Deposit tokens</div>
+              <div style={{ fontSize:'0.8rem', color:'var(--text-muted)', marginBottom:16 }}>Set the token amounts for your liquidity contribution.</div>
+
+              {/* TAO input box */}
+              <div style={{ background:'var(--bg-input)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:8 }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <input type="number" placeholder="0" value={amountETH}
+                    onChange={e => handleTAOInput(e.target.value)}
+                    style={{ background:'none', border:'none', outline:'none', color:'var(--text)', fontSize:'1.5rem', fontWeight:500, width:'55%', padding:0 }} />
+                  <div style={{ textAlign:'right' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, justifyContent:'flex-end', marginBottom:4 }}>
+                      <div style={{ width:22, height:22, borderRadius:'50%', background:'linear-gradient(135deg,#00d4aa,#4ade80)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color:'#fff' }}>τ</div>
+                      <span style={{ fontWeight:600, fontSize:'0.92rem' }}>TAO</span>
+                    </div>
+                    <div style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>
+                      {address ? `${parseFloat(taoBalance).toFixed(4)} TAO` : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Token input box */}
+              <div style={{ background:'var(--bg-input)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:16 }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <input type="number" placeholder="0" value={amountTok}
+                    onChange={e => handleTokInput(e.target.value)}
+                    style={{ background:'none', border:'none', outline:'none', color:'var(--text)', fontSize:'1.5rem', fontWeight:500, width:'55%', padding:0 }} />
+                  <div style={{ textAlign:'right' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, justifyContent:'flex-end', marginBottom:4 }}>
+                      <div style={{ width:22, height:22, borderRadius:'50%', background:'rgba(59,130,246,0.25)', border:'1.5px solid #3b82f6', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, color:'#60a5fa' }}>
+                        {otherMeta?.symbol?.slice(0,2)}
+                      </div>
+                      <span style={{ fontWeight:600, fontSize:'0.92rem' }}>{otherMeta?.symbol}</span>
+                    </div>
+                    <div style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>
+                      {address ? `${parseFloat(tokBalance).toFixed(4)} ${otherMeta?.symbol}` : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button className="btn-bridge" style={{ padding:'14px 0', width:'100%', fontSize:'0.9rem' }}
+                onClick={handleAdd} disabled={loading || !signer || !hasAmount}>
+                {!signer
+                  ? 'Connect Wallet'
+                  : loading
+                    ? <><div className="spinner" />Working...</>
+                    : hasAmount ? 'Add Liquidity' : 'Enter an amount'}
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ fontWeight:600, fontSize:'0.92rem', marginBottom:4 }}>Remove liquidity</div>
+              <div style={{ fontSize:'0.82rem', color:'var(--text-muted)', marginBottom:10 }}>
                 My LP: <span style={{ color:'var(--text)' }}>{parseFloat(lpBalance).toFixed(6)}</span>
               </div>
               <label style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>Remove %</label>
-              <input className="amount-input" style={{ width:'100%', marginBottom:12, marginTop:4 }} type="number" min="1" max="100"
-                value={removePct} onChange={e => setRemovePct(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))} />
-              <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginBottom:10 }}>
+              <input className="amount-input" style={{ width:'100%', marginBottom:10, marginTop:4 }}
+                type="number" min="1" max="100" value={removePct}
+                onChange={e => setRemovePct(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))} />
+              <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginBottom:14 }}>
                 Removing: {(parseFloat(lpBalance) * removePct / 100).toFixed(6)} LP
               </div>
-              <button className="btn-bridge" style={{ padding:'10px 0', width:'100%', background:'linear-gradient(90deg, #f87171, #ef4444)' }}
+              <button className="btn-bridge"
+                style={{ padding:'14px 0', width:'100%', fontSize:'0.9rem', background:'linear-gradient(90deg,#f87171,#ef4444)' }}
                 onClick={handleRemove} disabled={loading || !signer || parseFloat(lpBalance) <= 0}>
                 {loading ? <><div className="spinner" />Working...</> : 'Remove Liquidity'}
               </button>
-            </div>
-          </div>
+            </>
+          )}
+
           {txHash && (
-            <div style={{ marginTop:10, textAlign:'center' }}>
+            <div style={{ marginTop:12, textAlign:'center' }}>
               <a className="tx-link" href={`https://evm.taostats.io/tx/${txHash}`} target="_blank" rel="noreferrer">
                 {txHash.slice(0,10)}...{txHash.slice(-6)} ↗
               </a>
