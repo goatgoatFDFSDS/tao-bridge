@@ -104,10 +104,40 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
   } = useNFTMarket(address);
 
   const [activeCollection, setActiveCollection] = useState(PASS_NFT);
-  const [activeTab, setActiveTab]               = useState('listings'); // listings | mine
+  const [activeTab, setActiveTab]               = useState('listings');
   const [buyingId, setBuyingId]                 = useState(null);
   const [listingId, setListingId]               = useState(null);
   const [toast, setToast]                       = useState(null);
+  const [stats, setStats]                       = useState({ sales: 0, volume: 0, topSale: 0 });
+
+  // Fetch sales stats from Sold events
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const provider = new ethers.JsonRpcProvider(BITTENSOR_RPC);
+        const MARKETPLACE_ABI = [
+          'event Sold(address indexed nft, uint256 indexed tokenId, address buyer, uint256 price)',
+        ];
+        const market = new ethers.Contract(MARKETPLACE_ADDRESS, MARKETPLACE_ABI, provider);
+        const latest = await provider.getBlockNumber();
+        const fromBlock = Math.max(0, latest - 5000);
+        const events = await market.queryFilter(
+          market.filters.Sold(activeCollection), fromBlock, 'latest'
+        ).catch(() => []);
+        let volume = 0n, topSale = 0n;
+        for (const ev of events) {
+          volume += ev.args.price;
+          if (ev.args.price > topSale) topSale = ev.args.price;
+        }
+        setStats({
+          sales: events.length,
+          volume: parseFloat(ethers.formatEther(volume)),
+          topSale: parseFloat(ethers.formatEther(topSale)),
+        });
+      } catch {}
+    }
+    loadStats();
+  }, [activeCollection, MARKETPLACE_ADDRESS, listings]);
 
   const isOnBittensor = chainId === 964;
 
@@ -239,6 +269,36 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
             ))}
           </div>
         )}
+
+        {/* Stats bar */}
+        {(() => {
+          const col = COLLECTIONS.find(c => c.address === activeCollection);
+          const floor = listings.length > 0
+            ? Math.min(...listings.map(l => parseFloat(ethers.formatEther(l.price))))
+            : 0;
+          const mktCap = col ? floor * col.supply : 0;
+          const statItems = [
+            { label: 'Listed',    value: listings.length },
+            { label: 'Floor',     value: floor > 0 ? `${floor} TAO` : '—' },
+            { label: 'Sales',     value: stats.sales },
+            { label: 'Volume',    value: stats.volume > 0 ? `${stats.volume.toFixed(1)} TAO` : '—' },
+            { label: 'Top Sale',  value: stats.topSale > 0 ? `${stats.topSale} TAO` : '—' },
+            { label: 'Mkt Cap',   value: mktCap > 0 ? `${mktCap.toFixed(0)} TAO` : '—' },
+            { label: 'Fee',       value: '2.5%' },
+          ];
+          return (
+            <div className="bridge-card" style={{ padding:'12px 20px', marginBottom:16, overflowX:'auto' }}>
+              <div style={{ display:'flex', gap:32, minWidth:'max-content' }}>
+                {statItems.map(s => (
+                  <div key={s.label}>
+                    <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginBottom:3 }}>{s.label}</div>
+                    <div style={{ fontSize:'0.9rem', fontWeight:600, color:'var(--text)' }}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Tabs + refresh */}
         <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap' }}>
