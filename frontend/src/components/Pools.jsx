@@ -5,6 +5,61 @@ import { DEX_CONTRACTS, ERC20_ABI } from '../hooks/useSwap';
 
 const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
+const KNOWN_TOKENS = [
+  { symbol: 'TAO',   address: DEX_CONTRACTS.WTAO,  color: '#00d4aa', bg: 'rgba(0,212,170,0.15)' },
+  { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+  { symbol: 'USDC',  address: DEX_CONTRACTS.USDC,  color: '#2775ca', bg: 'rgba(39,117,202,0.15)' },
+];
+
+function TokenPicker({ label, value, onChange }) {
+  const [custom, setCustom] = useState(false);
+  const selected = KNOWN_TOKENS.find(t => t.address.toLowerCase() === value.toLowerCase());
+
+  return (
+    <div>
+      <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginBottom:8 }}>{label}</div>
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:8 }}>
+        {KNOWN_TOKENS.map(t => (
+          <button key={t.address}
+            onClick={() => { onChange(t.address); setCustom(false); }}
+            style={{
+              display:'flex', alignItems:'center', gap:7, padding:'8px 14px',
+              borderRadius:10, border: `1.5px solid ${value.toLowerCase() === t.address.toLowerCase() ? t.color : 'var(--border)'}`,
+              background: value.toLowerCase() === t.address.toLowerCase() ? t.bg : 'var(--bg-input)',
+              cursor:'pointer', transition:'all .15s',
+            }}>
+            <div style={{ width:22, height:22, borderRadius:'50%', background:t.bg, border:`1.5px solid ${t.color}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color:t.color }}>
+              {t.symbol.slice(0,2)}
+            </div>
+            <span style={{ fontWeight:600, fontSize:'0.88rem', color: value.toLowerCase() === t.address.toLowerCase() ? t.color : 'var(--text)' }}>{t.symbol}</span>
+          </button>
+        ))}
+        <button
+          onClick={() => setCustom(c => !c)}
+          style={{
+            padding:'8px 14px', borderRadius:10,
+            border:`1.5px solid ${custom ? 'rgba(168,85,247,0.6)' : 'var(--border)'}`,
+            background: custom ? 'rgba(168,85,247,0.1)' : 'var(--bg-input)',
+            cursor:'pointer', fontSize:'0.82rem', color: custom ? '#c084fc' : 'var(--text-muted)',
+          }}>
+          Custom
+        </button>
+      </div>
+      {custom && (
+        <input className="recipient-input" placeholder="0x..."
+          value={selected ? '' : value}
+          onChange={e => onChange(e.target.value)}
+          style={{ marginTop:4 }} />
+      )}
+      {selected && !custom && (
+        <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', fontFamily:'monospace', marginTop:2 }}>
+          {selected.address.slice(0,14)}...{selected.address.slice(-6)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PoolRow({ pair, address, signer, onRefresh }) {
   const { addLiquidityETH, removeLiquidityETH, PAIR_ABI } = usePools();
   const [expanded,   setExpanded]   = useState(false);
@@ -303,19 +358,10 @@ export default function Pools({ address, signer, chainId, connect, switchChain }
         {/* Create pool panel */}
         {showCreate && (
           <div className="bridge-card" style={{ marginBottom:20, padding:'18px 22px' }}>
-            <div className="card-title" style={{ marginBottom:14, fontSize:'0.95rem' }}>Create New Pool</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
-              <div>
-                <label style={{ fontSize:'0.78rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Token A address</label>
-                <input className="recipient-input" placeholder="0x..." value={newTokenA} onChange={e => setNewTokenA(e.target.value)} />
-              </div>
-              <div>
-                <label style={{ fontSize:'0.78rem', color:'var(--text-muted)', display:'block', marginBottom:4 }}>Token B address</label>
-                <input className="recipient-input" placeholder="0x..." value={newTokenB} onChange={e => setNewTokenB(e.target.value)} />
-              </div>
-            </div>
-            <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginBottom:12 }}>
-              TFLOW: <span style={{ color:'var(--text-sub)', fontFamily:'monospace' }}>{DEX_CONTRACTS.TFLOW}</span>
+            <div className="card-title" style={{ marginBottom:18, fontSize:'0.95rem' }}>Create New Pool</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:18 }}>
+              <TokenPicker label="Token A" value={newTokenA} onChange={setNewTokenA} />
+              <TokenPicker label="Token B" value={newTokenB} onChange={setNewTokenB} />
             </div>
             <button className="btn-bridge" style={{ padding:'11px 0', width:'100%' }}
               onClick={handleCreatePool} disabled={creating}>

@@ -263,36 +263,37 @@ export default function App() {
           <div className="logo-text"><span>TAO</span><span>flow</span></div>
         </a>
 
-        <nav className="header-nav" onMouseLeave={() => setTradeOpen(false)}>
+        <nav className="header-nav">
           {/* Trade dropdown */}
           <div style={{ position:'relative' }}
-            onMouseEnter={() => setTradeOpen(true)}>
+            onMouseEnter={() => setTradeOpen(true)}
+            onMouseLeave={() => setTradeOpen(false)}>
             <button className={`nav-pill ${isTradeActive ? 'active' : ''}`}
-              style={{ display:'flex', alignItems:'center', gap:5 }}
-              onClick={() => setTradeOpen(o => !o)}>
+              style={{ display:'flex', alignItems:'center', gap:5 }}>
               Trade
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity:0.6, transition:'transform .2s', transform: tradeOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
             {tradeOpen && (
-              <div style={{
-                position:'absolute', top:'calc(100% + 6px)', left:0, zIndex:200,
-                background:'var(--bg-card)', border:'1px solid var(--border)',
-                borderRadius:10, padding:'6px', minWidth:130,
-                boxShadow:'0 8px 32px rgba(0,0,0,0.4)',
-              }}>
-                {[
-                  { label:'Swap',  p:'swap',  url:'/swap' },
-                  { label:'Pools', p:'pools', url:'/pools' },
-                ].map(({ label, p, url }) => (
-                  <button key={p}
-                    className={`nav-pill ${page === p ? 'active' : ''}`}
-                    style={{ display:'block', width:'100%', textAlign:'left', borderRadius:7, marginBottom:2 }}
-                    onClick={() => { setPage(p); window.history.pushState(null,'',url); setTradeOpen(false); }}>
-                    {label}
-                  </button>
-                ))}
+              <div style={{ position:'absolute', top:'100%', left:0, zIndex:200, paddingTop:6 }}>
+                <div style={{
+                  background:'var(--bg-card)', border:'1px solid var(--border)',
+                  borderRadius:10, padding:'6px', minWidth:130,
+                  boxShadow:'0 8px 32px rgba(0,0,0,0.4)',
+                }}>
+                  {[
+                    { label:'Swap',  p:'swap',  url:'/swap' },
+                    { label:'Pools', p:'pools', url:'/pools' },
+                  ].map(({ label, p, url }) => (
+                    <button key={p}
+                      className={`nav-pill ${page === p ? 'active' : ''}`}
+                      style={{ display:'block', width:'100%', textAlign:'left', borderRadius:7, marginBottom:2 }}
+                      onClick={() => { setPage(p); window.history.pushState(null,'',url); setTradeOpen(false); }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
