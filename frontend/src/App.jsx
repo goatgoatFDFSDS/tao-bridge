@@ -133,6 +133,10 @@ export default function App() {
   });
   const [showDocs,        setShowDocs]        = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [tradeOpen,       setTradeOpen]       = useState(false);
+
+  const TRADE_PAGES = ['bridge', 'swap', 'pools'];
+  const isTradeActive = TRADE_PAGES.includes(page);
   const [direction,    setDirection]    = useState('to');     // 'to' | 'from'
   const [srcChainId,   setSrcChainId]   = useState(8453);
   const [tokenSymbol,  setTokenSymbol]  = useState('USDC');
@@ -259,26 +263,59 @@ export default function App() {
           <div className="logo-text"><span>TAO</span><span>flow</span></div>
         </a>
 
-        <nav className="header-nav">
-          <button className={`nav-pill ${page === 'bridge' ? 'active' : ''}`} onClick={() => { setPage('bridge'); window.history.pushState(null,'','/'); }}>Bridge</button>
-          <button className={`nav-pill ${page === 'swap' ? 'active' : ''}`} onClick={() => { setPage('swap'); window.history.pushState(null,'','/swap'); }}>Swap</button>
-          <button className={`nav-pill ${page === 'pools' ? 'active' : ''}`} onClick={() => { setPage('pools'); window.history.pushState(null,'','/pools'); }}>Pools</button>
-          <button className={`nav-pill ${page === 'nfts' ? 'active' : ''}`} onClick={() => { setPage('nfts'); window.history.pushState(null,'','/nfts'); }}>NFTs</button>
-          <button className={`nav-pill ${page === 'mypass' ? 'active' : ''}`} onClick={() => { setPage('mypass'); window.history.pushState(null,'','/mypass'); }} style={{display:'flex',alignItems:'center',gap:5}}>
-            My Pass {hasPass && <span style={{width:7,height:7,borderRadius:'50%',background:'var(--cyan)',boxShadow:'0 0 6px var(--cyan)',display:'inline-block'}} />}
+        <nav className="header-nav" onMouseLeave={() => setTradeOpen(false)}>
+          {/* Trade dropdown */}
+          <div style={{ position:'relative' }}
+            onMouseEnter={() => setTradeOpen(true)}>
+            <button className={`nav-pill ${isTradeActive ? 'active' : ''}`}
+              style={{ display:'flex', alignItems:'center', gap:5 }}
+              onClick={() => setTradeOpen(o => !o)}>
+              Trade
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity:0.6, transition:'transform .2s', transform: tradeOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {tradeOpen && (
+              <div style={{
+                position:'absolute', top:'calc(100% + 6px)', left:0, zIndex:200,
+                background:'var(--bg-card)', border:'1px solid var(--border)',
+                borderRadius:10, padding:'6px', minWidth:130,
+                boxShadow:'0 8px 32px rgba(0,0,0,0.4)',
+              }}>
+                {[
+                  { label:'Bridge', p:'bridge', url:'/' },
+                  { label:'Swap',   p:'swap',   url:'/swap' },
+                  { label:'Pools',  p:'pools',  url:'/pools' },
+                ].map(({ label, p, url }) => (
+                  <button key={p}
+                    className={`nav-pill ${page === p ? 'active' : ''}`}
+                    style={{ display:'block', width:'100%', textAlign:'left', borderRadius:7, marginBottom:2 }}
+                    onClick={() => { setPage(p); window.history.pushState(null,'',url); setTradeOpen(false); }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button className={`nav-pill ${page === 'nfts' ? 'active' : ''}`}
+            onClick={() => { setPage('nfts'); window.history.pushState(null,'','/nfts'); }}>
+            Marketplace
           </button>
-          <span className="nav-pill nav-pill--closed" title="Mint closed — sold out">
-            Mint <span style={{fontSize:'0.7rem',opacity:0.7}}>✕</span>
-          </span>
-          <a className="nav-pill" href="https://evm.taostats.io" target="_blank" rel="noreferrer" style={{textDecoration:'none'}}>Explorer</a>
+
+          <button className={`nav-pill ${page === 'mypass' ? 'active' : ''}`}
+            onClick={() => { setPage('mypass'); window.history.pushState(null,'','/mypass'); }}
+            style={{ display:'flex', alignItems:'center', gap:5 }}>
+            My Pass
+            {hasPass && <span style={{ width:7, height:7, borderRadius:'50%', background:'var(--cyan)', boxShadow:'0 0 6px var(--cyan)', display:'inline-block' }} />}
+          </button>
+
+          {/* Separator */}
+          <span style={{ width:1, height:18, background:'var(--border)', margin:'0 4px', display:'inline-block', alignSelf:'center' }} />
+
+          <a className="nav-pill" href="https://evm.taostats.io" target="_blank" rel="noreferrer" style={{ textDecoration:'none' }}>Explorer</a>
           <button className="nav-pill" onClick={() => setShowDocs(true)}>Docs</button>
-          <a className="nav-pill" href="https://t.me/TAOflowTradingBot" target="_blank" rel="noreferrer" style={{textDecoration:'none'}}>Trading Bot</a>
-          <a className="nav-pill" href="https://x.com/TAOFlowApp" target="_blank" rel="noreferrer" style={{textDecoration:'none',display:'flex',alignItems:'center',padding:'7px 10px'}}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          </a>
-          <a className="nav-pill" href="https://t.me/tao_flow" target="_blank" rel="noreferrer" style={{textDecoration:'none',display:'flex',alignItems:'center',padding:'7px 10px'}}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 14.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/></svg>
-          </a>
+          <a className="nav-pill" href="https://t.me/TAOflowTradingBot" target="_blank" rel="noreferrer" style={{ textDecoration:'none' }}>Bot</a>
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
