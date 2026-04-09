@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ethers } from 'ethers';
 import { useSwap, DEX_CONTRACTS, ERC20_ABI } from '../hooks/useSwap';
+import ChartPanel from './ChartPanel';
 
 const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
@@ -182,8 +183,8 @@ export default function Swap({ address, signer, chainId, connect, switchChain })
 
   return (
     <div className="page-wrap">
-      <div className="page-hero">
-        <h1 className="page-title">Swap</h1>
+      <div style={{ padding:'32px 20px 16px', maxWidth:1100, margin:'0 auto', width:'100%' }}>
+        <h1 className="page-title" style={{ marginBottom:4 }}>Swap</h1>
         <p className="page-sub">Instant token swaps on Bittensor EVM via TAOflow DEX</p>
       </div>
 
@@ -240,8 +241,16 @@ export default function Swap({ address, signer, chainId, connect, switchChain })
         </div>
       )}
 
-      <div className="swap-wrap">
-        <div className="bridge-card" style={{ maxWidth: 440 }}>
+      <div style={{ display:'flex', gap:20, padding:'0 20px 60px', maxWidth:1100, margin:'0 auto', width:'100%', alignItems:'flex-start', flexWrap:'wrap' }}>
+
+        {/* ── Chart panel (left) ────────────────────────────────────────── */}
+        <div style={{ flex:'1 1 420px', minWidth:300, minHeight:560 }}>
+          <ChartPanel token={tokenOut.isNative ? tokenIn : tokenOut} />
+        </div>
+
+        {/* ── Swap card (right) ─────────────────────────────────────────── */}
+        <div style={{ flex:'0 0 440px', minWidth:320 }}>
+        <div className="bridge-card" style={{ width:'100%' }}>
           {/* Header */}
           <div className="card-header">
             <span className="card-title">Swap Tokens</span>
@@ -433,7 +442,8 @@ export default function Swap({ address, signer, chainId, connect, switchChain })
             </p>
           )}
         </div>
-      </div>
+        </div>{/* swap card wrapper */}
+      </div>{/* 2-col flex */}
     </div>
   );
 }
