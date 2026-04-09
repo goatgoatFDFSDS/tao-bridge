@@ -6,10 +6,15 @@ import { DEX_CONTRACTS, ERC20_ABI } from '../hooks/useSwap';
 const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
 const KNOWN_TOKENS = [
-  { symbol: 'TAO',   address: DEX_CONTRACTS.WTAO,  color: '#00d4aa', bg: 'rgba(0,212,170,0.15)' },
-  { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-  { symbol: 'USDC',  address: DEX_CONTRACTS.USDC,  color: '#2775ca', bg: 'rgba(39,117,202,0.15)' },
+  { symbol: 'TAO',   address: DEX_CONTRACTS.WTAO,  color: '#00d4aa', bg: 'rgba(0,212,170,0.15)', decimals: 18 },
+  { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)', decimals: 18 },
+  { symbol: 'USDC',  address: DEX_CONTRACTS.USDC,  color: '#2775ca', bg: 'rgba(39,117,202,0.15)', decimals: 6  },
 ];
+
+function getDecimals(addr) {
+  const t = KNOWN_TOKENS.find(t => t.address.toLowerCase() === addr?.toLowerCase());
+  return t ? t.decimals : 18;
+}
 
 function TokenPicker({ label, value, onChange }) {
   const [custom, setCustom] = useState(false);
@@ -303,27 +308,55 @@ function PoolRow({ pair, address, signer, onRefresh }) {
 }
 
 export default function Pools({ address, signer, chainId, connect, switchChain }) {
-  const { pairs, loading, error, fetchPairs } = usePools();
+  const { pairs, loading, error, fetchPairs, addLiquidityETH, addLiquidity } = usePools();
   const [showCreate, setShowCreate] = useState(false);
-  const [newTokenA, setNewTokenA]   = useState('');
-  const [newTokenB, setNewTokenB]   = useState(DEX_CONTRACTS.WTAO);
+  const [newTokenA, setNewTokenA]   = useState(DEX_CONTRACTS.WTAO);
+  const [newTokenB, setNewTokenB]   = useState(DEX_CONTRACTS.TFLOW);
+  const [amountA,   setAmountA]     = useState('');
+  const [amountB,   setAmountB]     = useState('');
   const [creating,  setCreating]    = useState(false);
   const [createTx,  setCreateTx]    = useState(null);
 
   const isOnBittensor = chainId === 964;
+  const tokenAisTAO = newTokenA.toLowerCase() === DEX_CONTRACTS.WTAO.toLowerCase();
+  const tokenBisTAO = newTokenB.toLowerCase() === DEX_CONTRACTS.WTAO.toLowerCase();
+  const isTAOpair = tokenAisTAO || tokenBisTAO;
+
+  const symA = KNOWN_TOKENS.find(t => t.address.toLowerCase() === newTokenA.toLowerCase())?.symbol || 'Token A';
+  const symB = KNOWN_TOKENS.find(t => t.address.toLowerCase() === newTokenB.toLowerCase())?.symbol || 'Token B';
 
   const handleCreatePool = async () => {
     if (!signer) { connect(); return; }
     if (!isOnBittensor) { switchChain(964); return; }
-    if (!newTokenA || !newTokenB) return;
+    if (!newTokenA || !newTokenB || !amountA || !amountB) return;
     setCreating(true); setCreateTx(null);
     try {
-      const FACTORY_ABI = ['function createPair(address tokenA, address tokenB) external returns (address pair)'];
-      const factory = new ethers.Contract(DEX_CONTRACTS.UniswapV2Factory, FACTORY_ABI, signer);
-      const tx = await factory.createPair(newTokenA, newTokenB);
-      setCreateTx(tx.hash);
-      await tx.wait();
-      setNewTokenA('');
+      let hash;
+      if (tokenAisTAO) {
+        hash = await addLiquidityETH(signer, {
+          token: newTokenB,
+          amountToken: ethers.parseUnits(amountB, getDecimals(newTokenB)),
+          amountETH: ethers.parseEther(amountA),
+          to: address,
+        });
+      } else if (tokenBisTAO) {
+        hash = await addLiquidityETH(signer, {
+          token: newTokenA,
+          amountToken: ethers.parseUnits(amountA, getDecimals(newTokenA)),
+          amountETH: ethers.parseEther(amountB),
+          to: address,
+        });
+      } else {
+        hash = await addLiquidity(signer, {
+          tokenA: newTokenA,
+          tokenB: newTokenB,
+          amountA: ethers.parseUnits(amountA, getDecimals(newTokenA)),
+          amountB: ethers.parseUnits(amountB, getDecimals(newTokenB)),
+          to: address,
+        });
+      }
+      setCreateTx(hash);
+      setAmountA(''); setAmountB('');
       fetchPairs();
     } catch (e) {
       alert(e?.shortMessage || e?.message || 'Create pool failed');
@@ -359,13 +392,39 @@ export default function Pools({ address, signer, chainId, connect, switchChain }
         {showCreate && (
           <div className="bridge-card" style={{ marginBottom:20, padding:'18px 22px' }}>
             <div className="card-title" style={{ marginBottom:18, fontSize:'0.95rem' }}>Create New Pool</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:18 }}>
-              <TokenPicker label="Token A" value={newTokenA} onChange={setNewTokenA} />
-              <TokenPicker label="Token B" value={newTokenB} onChange={setNewTokenB} />
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+              <TokenPicker label="Token A" value={newTokenA} onChange={v => { setNewTokenA(v); setAmountA(''); setAmountB(''); }} />
+              <TokenPicker label="Token B" value={newTokenB} onChange={v => { setNewTokenB(v); setAmountA(''); setAmountB(''); }} />
             </div>
-            <button className="btn-bridge" style={{ padding:'11px 0', width:'100%' }}
-              onClick={handleCreatePool} disabled={creating}>
-              {creating ? <><div className="spinner" />Creating...</> : 'Create Pool'}
+
+            <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginBottom:10 }}>Initial deposit amounts</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:18 }}>
+              {/* Amount A */}
+              <div style={{ background:'var(--bg-input)', border:'1px solid var(--border)', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <input type="number" placeholder="0" value={amountA}
+                  onChange={e => setAmountA(e.target.value)}
+                  style={{ background:'none', border:'none', outline:'none', color:'var(--text)', fontSize:'1.4rem', fontWeight:500, width:'55%', padding:0 }} />
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontWeight:600, fontSize:'0.92rem', color: tokenAisTAO ? 'var(--cyan)' : 'var(--text)' }}>{symA}</div>
+                </div>
+              </div>
+              {/* Amount B */}
+              <div style={{ background:'var(--bg-input)', border:'1px solid var(--border)', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <input type="number" placeholder="0" value={amountB}
+                  onChange={e => setAmountB(e.target.value)}
+                  style={{ background:'none', border:'none', outline:'none', color:'var(--text)', fontSize:'1.4rem', fontWeight:500, width:'55%', padding:0 }} />
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontWeight:600, fontSize:'0.92rem', color: tokenBisTAO ? 'var(--cyan)' : 'var(--text)' }}>{symB}</div>
+                </div>
+              </div>
+            </div>
+
+            <button className="btn-bridge" style={{ padding:'13px 0', width:'100%' }}
+              onClick={handleCreatePool}
+              disabled={creating || !amountA || !amountB || !parseFloat(amountA) || !parseFloat(amountB)}>
+              {creating
+                ? <><div className="spinner" />Creating...</>
+                : (!amountA || !amountB) ? 'Enter amounts' : `Create ${symA}/${symB} Pool`}
             </button>
             {createTx && (
               <div style={{ marginTop:10, textAlign:'center' }}>

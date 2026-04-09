@@ -145,5 +145,26 @@ export function usePools() {
     return tx.hash;
   }, []);
 
-  return { pairs, loading, error, fetchPairs, addLiquidityETH, removeLiquidityETH, PAIR_ABI };
+  // Add liquidity (token/token pair, no native ETH)
+  const addLiquidity = useCallback(async (signer, { tokenA, tokenB, amountA, amountB, to }) => {
+    const router = new ethers.Contract(DEX_CONTRACTS.UniswapV2Router02, ROUTER_ABI, signer);
+    const deadline = Math.floor(Date.now() / 1000) + 1200;
+    for (const [token, amount] of [[tokenA, amountA], [tokenB, amountB]]) {
+      const tokenC = new ethers.Contract(token, ERC20_ABI, signer);
+      const allowance = await tokenC.allowance(to, DEX_CONTRACTS.UniswapV2Router02);
+      if (allowance < amount) {
+        const tx = await tokenC.approve(DEX_CONTRACTS.UniswapV2Router02, amount);
+        await tx.wait();
+      }
+    }
+    const tx = await router.addLiquidity(
+      tokenA, tokenB, amountA, amountB,
+      amountA * 95n / 100n, amountB * 95n / 100n,
+      to, deadline
+    );
+    await tx.wait();
+    return tx.hash;
+  }, []);
+
+  return { pairs, loading, error, fetchPairs, addLiquidityETH, addLiquidity, removeLiquidityETH, PAIR_ABI };
 }

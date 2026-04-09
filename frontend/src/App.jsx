@@ -258,7 +258,7 @@ export default function App() {
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <header className="header">
-        <a className="logo" href="#">
+        <a className="logo" href="/" onClick={e => { e.preventDefault(); setPage('bridge'); window.history.pushState(null,'','/'); }}>
           <Logo />
           <div className="logo-text"><span>TAO</span><span>flow</span></div>
         </a>
