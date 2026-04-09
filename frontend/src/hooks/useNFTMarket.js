@@ -51,9 +51,9 @@ export function useNFTMarket(address) {
       const provider = new ethers.JsonRpcProvider(BITTENSOR_RPC);
       const market = new ethers.Contract(DEX_CONTRACTS.NFTMarketplace, MARKETPLACE_ABI, provider);
 
-      // Scan for Listed events from beginning (or last 10000 blocks)
+      // Marketplace was just deployed — scan only last 5000 blocks to avoid RPC timeout
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 50000);
+      const fromBlock = Math.max(0, currentBlock - 5000);
       const listedFilter = market.filters.Listed(nftAddress);
       const events = await market.queryFilter(listedFilter, fromBlock, 'latest');
 
@@ -110,10 +110,20 @@ export function useNFTMarket(address) {
       const balance = Number(await nft.balanceOf(address).catch(() => 0n));
       if (balance === 0) { setMyTokens([]); return; }
 
-      // Phase 2: scan Transfer events to find tokenIds (ERC721A has no tokenOfOwnerByIndex)
+      // Phase 2: scan Transfer events in chunks of 20k blocks to avoid RPC timeout
       const latest    = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, latest - 250_000);
-      const events    = await nft.queryFilter(nft.filters.Transfer(null, address), fromBlock, latest);
+      const RANGE     = 300_000; // total blocks to scan
+      const CHUNK     = 20_000;  // per request
+      const startBlock = Math.max(0, latest - RANGE);
+      const allEvents = [];
+      for (let from = startBlock; from <= latest; from += CHUNK) {
+        const to = Math.min(from + CHUNK - 1, latest);
+        try {
+          const chunk = await nft.queryFilter(nft.filters.Transfer(null, address), from, to);
+          allEvents.push(...chunk);
+        } catch { /* skip failing chunk */ }
+      }
+      const events = allEvents;
 
       const candidates = [...new Map(
         events.map(ev => [ev.args.tokenId.toString(), ev.args.tokenId])
