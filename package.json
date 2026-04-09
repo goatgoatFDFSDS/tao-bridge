@@ -1,0 +1,26 @@
+{
+  "name": "tao-bridge",
+  "version": "1.0.0",
+  "description": "ETH / Base / BSC ↔ Bittensor EVM bridge for USDC/USDT",
+  "scripts": {
+    "relayer": "node relayer/index.js",
+    "compile": "npx hardhat compile",
+    "deploy:vault:eth":  "npx hardhat run deploy/01_deploy_vaults.js --network ethereum",
+    "deploy:vault:base": "npx hardhat run deploy/01_deploy_vaults.js --network base",
+    "deploy:vault:bsc":  "npx hardhat run deploy/01_deploy_vaults.js --network bsc",
+    "deploy:receiver":   "npx hardhat run deploy/02_deploy_tao_receiver.js --network bittensor",
+    "verify:eth":  "npx hardhat verify --network ethereum",
+    "verify:base": "npx hardhat verify --network base",
+    "verify:bsc":  "npx hardhat verify --network bsc"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "hardhat": "^2.22.0"
+  }
+}

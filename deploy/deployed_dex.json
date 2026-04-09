@@ -1,0 +1,12 @@
+{
+  "network": "bittensor",
+  "chainId": 964,
+  "deployer": "0x72545c58967d31f610C466F7AdFE3E87335E0068",
+  "deployedAt": "2026-04-09T10:48:39.514Z",
+  "contracts": {
+    "WTAO": "0x8feD645e8138DAE5cB71A2fEC8598D868Ab92E34",
+    "UniswapV2Factory": "0x7d7C38A0E671f4a05fEf9B114EF20d4Af4f6C130",
+    "UniswapV2Router02": "0x26C46ABa486fe8d7902acB4CB923f34663B22cA4",
+    "NFTMarketplace": "0x8580Ea3b897fEDc450f8e9DC624BEe833e3670c0"
+  }
+}
