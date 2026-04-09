@@ -8,6 +8,7 @@ const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4
 const KNOWN_TOKENS = [
   { symbol: 'TAO',   address: 'TAO',              decimals: 18, isNative: true },
   { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW, decimals: 18 },
+  { symbol: 'TEST',  address: '0x2B4D6e3edFBad9B1B131BeC6ED4C9952362CfFCb', decimals: 18 },
 ];
 
 function TokenIcon({ symbol, size = 22 }) {
