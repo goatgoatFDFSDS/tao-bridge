@@ -31,7 +31,7 @@ const ERC721_ABI = [
   'function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256)',
 ];
 
-const BITTENSOR_RPC = 'https://lite.chain.opentensor.ai';
+const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
 export { MARKETPLACE_ABI, ERC721_ABI };
 
@@ -99,38 +99,59 @@ export function useNFTMarket(address) {
     }
   }, []);
 
-  // Fetch tokens owned by current user (for Pass NFT)
+  // Fetch tokens owned by current user — uses Transfer events (ERC721A compatible)
   const fetchMyTokens = useCallback(async (nftAddress = PASS_NFT) => {
     if (!address) { setMyTokens([]); return; }
     try {
       const provider = new ethers.JsonRpcProvider(BITTENSOR_RPC);
       const nft = new ethers.Contract(nftAddress, ERC721_ABI, provider);
+
+      // Phase 1: balanceOf quick check
       const balance = Number(await nft.balanceOf(address).catch(() => 0n));
-      const tokens = [];
-      for (let i = 0; i < balance; i++) {
-        try {
-          const tokenId = await nft.tokenOfOwnerByIndex(address, i);
-          let tokenURI = '';
-          let metadata = null;
+      if (balance === 0) { setMyTokens([]); return; }
+
+      // Phase 2: scan Transfer events to find tokenIds (ERC721A has no tokenOfOwnerByIndex)
+      const latest    = await provider.getBlockNumber();
+      const fromBlock = Math.max(0, latest - 250_000);
+      const events    = await nft.queryFilter(nft.filters.Transfer(null, address), fromBlock, latest);
+
+      const candidates = [...new Map(
+        events.map(ev => [ev.args.tokenId.toString(), ev.args.tokenId])
+      ).values()];
+
+      // Verify still owned
+      const ownedIds = (await Promise.all(
+        candidates.map(async (tid) => {
           try {
-            tokenURI = await nft.tokenURI(tokenId);
-            if (tokenURI.startsWith('http')) {
-              const res = await fetch(tokenURI).catch(() => null);
-              if (res?.ok) metadata = await res.json().catch(() => null);
-            } else if (tokenURI.startsWith('data:application/json')) {
-              const json = tokenURI.replace('data:application/json;base64,', '');
-              metadata = JSON.parse(atob(json));
-            }
-          } catch {}
-          tokens.push({
-            tokenId: tokenId.toString(),
-            tokenURI,
-            metadata,
-            image: metadata?.image || null,
-            name: metadata?.name || `#${tokenId}`,
-          });
+            const owner = await nft.ownerOf(tid);
+            return owner.toLowerCase() === address.toLowerCase() ? tid.toString() : null;
+          } catch { return null; }
+        })
+      )).filter(Boolean).sort((a, b) => Number(a) - Number(b));
+
+      // Fetch metadata for each
+      const tokens = await Promise.all(ownedIds.map(async (tokenId) => {
+        let tokenURI = '';
+        let metadata = null;
+        try {
+          tokenURI = await nft.tokenURI(tokenId);
+          if (tokenURI.startsWith('http')) {
+            const res = await fetch(tokenURI).catch(() => null);
+            if (res?.ok) metadata = await res.json().catch(() => null);
+          } else if (tokenURI.startsWith('data:application/json')) {
+            const json = tokenURI.replace('data:application/json;base64,', '');
+            metadata = JSON.parse(atob(json));
+          }
         } catch {}
-      }
+        return {
+          tokenId,
+          tokenURI,
+          metadata,
+          image: metadata?.image || null,
+          name: metadata?.name || `TAOflow Pass #${tokenId}`,
+        };
+      }));
+
       setMyTokens(tokens);
     } catch {}
   }, [address]);

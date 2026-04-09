@@ -3,11 +3,19 @@ import { ethers } from 'ethers';
 import { useNFTMarket, PASS_NFT } from '../hooks/useNFTMarket';
 import { DEX_CONTRACTS } from '../hooks/useSwap';
 
-const BITTENSOR_RPC = 'https://lite.chain.opentensor.ai';
+const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
 // Known collections on Bittensor EVM
 const COLLECTIONS = [
-  { name: 'TAOflow Pass', address: PASS_NFT },
+  {
+    name: 'TAOflow Pass',
+    address: PASS_NFT,
+    description: 'The official TAOflow Pass NFT. Holders get 0% bridge fees, trading bot access, reward boosts and full ecosystem access.',
+    image: '/nft.png',
+    supply: 100,
+    chain: 'Bittensor EVM (964)',
+    standard: 'ERC-721A',
+  },
 ];
 
 function NFTCard({ item, address, signer, onBuy, buying }) {
@@ -173,40 +181,68 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
 
       <div style={{ maxWidth: 980, margin: '0 auto', padding: '0 20px' }}>
 
-        {/* Collection selector */}
-        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
-          <span style={{ fontSize:'0.85rem', color:'var(--text-muted)' }}>Collection:</span>
-          {COLLECTIONS.map(c => (
-            <button key={c.address}
-              className={`dir-tab ${activeCollection === c.address ? 'active' : ''}`}
-              style={{ padding:'8px 14px', fontSize:'0.84rem' }}
-              onClick={() => setActiveCollection(c.address)}>
-              {c.name}
-            </button>
-          ))}
-        </div>
+        {/* Collection header banner */}
+        {(() => {
+          const col = COLLECTIONS.find(c => c.address === activeCollection);
+          if (!col) return null;
+          return (
+            <div className="bridge-card" style={{ padding:0, marginBottom:20, overflow:'hidden' }}>
+              {/* Banner gradient */}
+              <div style={{ height:100, background:'linear-gradient(135deg, #0d1f3c 0%, #0a2540 40%, #061a2e 100%)', position:'relative' }}>
+                <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 60% 50%, rgba(59,130,246,0.18) 0%, transparent 70%)' }} />
+              </div>
+              {/* Collection info */}
+              <div style={{ padding:'0 20px 18px', position:'relative' }}>
+                {/* NFT image floating over banner */}
+                <div style={{ position:'relative', marginTop:-40, marginBottom:10, display:'inline-block' }}>
+                  <img src={col.image} alt={col.name}
+                    style={{ width:80, height:80, borderRadius:12, border:'3px solid var(--bg-card)', objectFit:'cover', display:'block', background:'var(--bg-hover)' }}
+                    onError={e => { e.target.style.display='none'; }} />
+                </div>
+                <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:'1.1rem', marginBottom:4 }}>{col.name}</div>
+                    <div style={{ fontSize:'0.8rem', color:'var(--text-muted)', maxWidth:480, lineHeight:1.5 }}>{col.description}</div>
+                    <div style={{ display:'flex', gap:16, marginTop:10, flexWrap:'wrap' }}>
+                      <div><span style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>Supply </span><span style={{ fontSize:'0.82rem', fontWeight:600 }}>{col.supply}</span></div>
+                      <div><span style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>Chain </span><span style={{ fontSize:'0.82rem', fontWeight:600 }}>{col.chain}</span></div>
+                      <div><span style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>Standard </span><span style={{ fontSize:'0.82rem', fontWeight:600 }}>{col.standard}</span></div>
+                      <div>
+                        <span style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>Contract </span>
+                        <a href={`https://evm.taostats.io/address/${activeCollection}`} target="_blank" rel="noreferrer"
+                          style={{ fontSize:'0.82rem', color:'var(--cyan)', textDecoration:'none', fontFamily:'monospace' }}>
+                          {activeCollection.slice(0,8)}...{activeCollection.slice(-6)} ↗
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                    <span style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>Marketplace fee <span style={{ color:'var(--cyan)', fontWeight:600 }}>2.5%</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
-        {/* Collection info bar */}
-        <div className="bridge-card" style={{ padding:'14px 20px', marginBottom:20 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
-            <div>
-              <div style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>Contract</div>
-              <div style={{ fontSize:'0.82rem', fontFamily:'monospace', color:'var(--text-sub)' }}>
-                <a href={`https://evm.taostats.io/address/${activeCollection}`} target="_blank" rel="noreferrer"
-                  style={{ color:'var(--cyan)', textDecoration:'none' }}>
-                  {activeCollection.slice(0,10)}...{activeCollection.slice(-8)} ↗
-                </a>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>Marketplace</div>
-              <div style={{ fontSize:'0.82rem', fontFamily:'monospace', color:'var(--text-sub)' }}>
-                <a href={`https://evm.taostats.io/address/${MARKETPLACE_ADDRESS}`} target="_blank" rel="noreferrer"
-                  style={{ color:'var(--cyan)', textDecoration:'none' }}>
-                  {MARKETPLACE_ADDRESS.slice(0,10)}...{MARKETPLACE_ADDRESS.slice(-8)} ↗
-                </a>
-              </div>
-            </div>
+        {/* Collection selector (if more than 1 collection) */}
+        {COLLECTIONS.length > 1 && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
+            <span style={{ fontSize:'0.85rem', color:'var(--text-muted)' }}>Collection:</span>
+            {COLLECTIONS.map(c => (
+              <button key={c.address}
+                className={`dir-tab ${activeCollection === c.address ? 'active' : ''}`}
+                style={{ padding:'8px 14px', fontSize:'0.84rem' }}
+                onClick={() => setActiveCollection(c.address)}>
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Tabs + refresh */}
+        <div className="bridge-card" style={{ padding:'12px 16px', marginBottom:20 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
             <div>
               <div style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>Marketplace fee</div>
               <div style={{ fontSize:'0.88rem', fontWeight:600, color:'var(--cyan)' }}>2.5%</div>
