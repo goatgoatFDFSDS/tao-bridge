@@ -122,11 +122,10 @@ export function useNFTMarket(address) {
       const balance = Number(await nft.balanceOf(address).catch(() => 0n));
       if (balance === 0) { setMyTokens([]); return; }
 
-      // Phase 2: scan Transfer events in chunks of 20k blocks to avoid RPC timeout
-      const latest    = await provider.getBlockNumber();
-      const RANGE     = 300_000; // total blocks to scan
-      const CHUNK     = 20_000;  // per request
-      const startBlock = Math.max(0, latest - RANGE);
+      // Phase 2: scan Transfer events from chain genesis in 50k-block chunks
+      const latest     = await provider.getBlockNumber();
+      const CHUNK      = 50_000;
+      const startBlock = 0;
       const allEvents = [];
       for (let from = startBlock; from <= latest; from += CHUNK) {
         const to = Math.min(from + CHUNK - 1, latest);

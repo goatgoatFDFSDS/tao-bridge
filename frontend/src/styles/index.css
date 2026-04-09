@@ -2240,12 +2240,19 @@ select.chain-select option, select.token-select option {
 .page-wrap {
   flex: 1;
   width: 100%;
-  padding: 40px 20px 60px;
+  box-sizing: border-box;
+  padding: 40px 0 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .page-hero {
   text-align: center;
   margin-bottom: 36px;
+  width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .page-title {
