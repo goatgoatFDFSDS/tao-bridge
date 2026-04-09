@@ -116,7 +116,7 @@ export default function Swap({ address, signer, chainId, connect, switchChain })
       const inAddr  = tokenIn.isNative  ? 'TAO' : tokenIn.address;
       const outAddr = tokenOut.isNative ? 'TAO' : tokenOut.address;
       await swap({ tokenIn: inAddr, tokenOut: outAddr, amountIn: rawIn, amountOutMin: rawOut, slippage, to: address });
-      setToast({ msg: 'Swap successful!', type: 'success' });
+      setToast({ type: 'success', amountIn, amountOut, symIn: tokenIn.symbol, symOut: tokenOut.symbol, txHash });
       setAmountIn('');
       setAmountOut('');
     } catch (e) {
@@ -187,9 +187,55 @@ export default function Swap({ address, signer, chainId, connect, switchChain })
         <p className="page-sub">Instant token swaps on Bittensor EVM via TAOflow DEX</p>
       </div>
 
-      {toast && (
-        <div className={`toast ${toast.type}`} onClick={() => setToast(null)} style={{ position:'fixed', top:80, right:24, zIndex:9999 }}>
-          <span>{toast.type === 'success' ? '✓' : '✕'}</span>
+      {toast && toast.type === 'success' && (
+        <div className="modal-overlay" onClick={() => setToast(null)} style={{ zIndex:9999 }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:'linear-gradient(145deg,#0d1f3c,#061a2e)',
+            border:'1px solid rgba(0,212,170,0.25)', borderRadius:20,
+            padding:'36px 32px', minWidth:320, maxWidth:400, textAlign:'center',
+            boxShadow:'0 24px 64px rgba(0,0,0,0.6)',
+          }}>
+            {/* Animated checkmark */}
+            <div style={{ width:64, height:64, borderRadius:'50%', background:'rgba(0,212,170,0.12)', border:'2px solid rgba(0,212,170,0.4)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px' }}>
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="15" stroke="#00d4aa" strokeWidth="1.5" opacity="0.4"/>
+                <path d="M9 16.5l5 5 9-9" stroke="#00d4aa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+
+            <div style={{ fontSize:'1.3rem', fontWeight:800, background:'linear-gradient(90deg,#00d4aa,#4ade80)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', marginBottom:8 }}>
+              Swap Successful!
+            </div>
+
+            {/* Amounts */}
+            <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:12, padding:'14px 18px', margin:'16px 0', display:'flex', alignItems:'center', justifyContent:'center', gap:10 }}>
+              <span style={{ fontWeight:700, fontSize:'1.05rem' }}>{parseFloat(toast.amountIn).toFixed(4)}</span>
+              <span style={{ color:'var(--cyan)', fontWeight:600 }}>{toast.symIn}</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+              <span style={{ fontWeight:700, fontSize:'1.05rem' }}>{parseFloat(toast.amountOut).toFixed(4)}</span>
+              <span style={{ color:'#4ade80', fontWeight:600 }}>{toast.symOut}</span>
+            </div>
+
+            {toast.txHash && (
+              <a href={`https://evm.taostats.io/tx/${toast.txHash}`} target="_blank" rel="noreferrer"
+                style={{ display:'inline-block', fontSize:'0.78rem', color:'var(--cyan)', fontFamily:'monospace', textDecoration:'none', marginBottom:20, opacity:0.8 }}>
+                {toast.txHash.slice(0,12)}...{toast.txHash.slice(-6)} ↗
+              </a>
+            )}
+
+            <button onClick={() => setToast(null)}
+              style={{ width:'100%', padding:'11px 0', borderRadius:12, border:'none', background:'rgba(0,212,170,0.15)', color:'var(--cyan)', fontWeight:700, fontSize:'0.9rem', cursor:'pointer' }}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {toast && toast.type === 'error' && (
+        <div className={`toast error`} onClick={() => setToast(null)} style={{ position:'fixed', top:80, right:24, zIndex:9999 }}>
+          <span>✕</span>
           <span>{toast.msg}</span>
         </div>
       )}
