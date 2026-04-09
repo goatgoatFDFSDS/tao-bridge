@@ -287,8 +287,8 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
             { label: 'Fee',       value: '2.5%' },
           ];
           return (
-            <div className="bridge-card" style={{ padding:'12px 20px', marginBottom:16, overflowX:'auto' }}>
-              <div style={{ display:'flex', gap:32, minWidth:'max-content' }}>
+            <div className="bridge-card" style={{ padding:'12px 20px', marginBottom:16 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', flexWrap:'nowrap' }}>
                 {statItems.map(s => (
                   <div key={s.label}>
                     <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginBottom:3 }}>{s.label}</div>
