@@ -18,6 +18,92 @@ const COLLECTIONS = [
   },
 ];
 
+function BuySuccessModal({ item, txHash, onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 12000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex:9999 }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'linear-gradient(145deg, #0d1f3c, #061a2e)',
+        border:'1px solid rgba(0,212,170,0.3)',
+        borderRadius:20, padding:'36px 32px', maxWidth:360, width:'90%',
+        textAlign:'center', position:'relative', overflow:'hidden',
+        boxShadow:'0 0 60px rgba(0,212,170,0.2), 0 24px 64px rgba(0,0,0,0.6)',
+      }}>
+        {/* Glow rings */}
+        <div style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden', borderRadius:20 }}>
+          <div style={{ position:'absolute', top:-60, left:'50%', transform:'translateX(-50%)', width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle, rgba(0,212,170,0.12) 0%, transparent 70%)' }} />
+        </div>
+
+        {/* Confetti dots */}
+        {[...Array(12)].map((_, i) => (
+          <div key={i} style={{
+            position:'absolute',
+            width: 6 + (i % 3) * 3,
+            height: 6 + (i % 3) * 3,
+            borderRadius:'50%',
+            background: ['#00d4aa','#3b82f6','#4ade80','#f59e0b','#a78bfa'][i % 5],
+            top: `${10 + (i * 7) % 80}%`,
+            left: `${5 + (i * 13) % 90}%`,
+            opacity: 0.6,
+            animation: `float ${2 + (i % 3)}s ease-in-out infinite alternate`,
+            animationDelay: `${i * 0.2}s`,
+          }} />
+        ))}
+
+        {/* NFT image */}
+        <div style={{ position:'relative', display:'inline-block', marginBottom:20 }}>
+          <div style={{ width:140, height:140, borderRadius:16, overflow:'hidden', border:'3px solid rgba(0,212,170,0.5)', boxShadow:'0 0 30px rgba(0,212,170,0.3)', margin:'0 auto' }}>
+            {item.image ? (
+              <img src={item.image} alt={item.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+            ) : (
+              <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-hover)', fontSize:'3rem' }}>τ</div>
+            )}
+          </div>
+          {/* Badge */}
+          <div style={{ position:'absolute', bottom:-10, left:'50%', transform:'translateX(-50%)', background:'linear-gradient(90deg,#00d4aa,#3b82f6)', borderRadius:20, padding:'4px 14px', fontSize:'0.72rem', fontWeight:700, color:'#fff', whiteSpace:'nowrap', boxShadow:'0 4px 12px rgba(0,212,170,0.4)' }}>
+            Owned ✓
+          </div>
+        </div>
+
+        <div style={{ fontSize:'1.5rem', marginBottom:6 }}>🎉</div>
+        <div style={{ fontWeight:800, fontSize:'1.15rem', marginBottom:6, background:'linear-gradient(90deg,#00d4aa,#3b82f6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
+          Congratulations!
+        </div>
+        <div style={{ fontSize:'0.9rem', color:'var(--text-sub)', marginBottom:4 }}>
+          You just bought
+        </div>
+        <div style={{ fontWeight:700, fontSize:'1.05rem', marginBottom:4 }}>{item.name}</div>
+        <div style={{ fontSize:'0.82rem', color:'var(--text-muted)', marginBottom:18 }}>
+          {ethers.formatEther(item.price)} TAO · Token #{item.tokenId}
+        </div>
+
+        {txHash && (
+          <a href={`https://evm.taostats.io/tx/${txHash}`} target="_blank" rel="noreferrer"
+            style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:'0.78rem', color:'var(--cyan)', textDecoration:'none', background:'rgba(0,212,170,0.08)', border:'1px solid rgba(0,212,170,0.2)', borderRadius:8, padding:'6px 12px', marginBottom:16 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            {txHash.slice(0,10)}...{txHash.slice(-6)} ↗
+          </a>
+        )}
+
+        <button onClick={onClose} className="btn-bridge" style={{ width:'100%', padding:'11px 0', fontSize:'0.9rem' }}>
+          View My NFTs
+        </button>
+
+        <style>{`
+          @keyframes float {
+            from { transform: translateY(0px) rotate(0deg); }
+            to   { transform: translateY(-10px) rotate(15deg); }
+          }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
 function NFTCard({ item, address, signer, onBuy, buying }) {
   const [imgError, setImgError] = useState(false);
   const isMine = address && item.seller.toLowerCase() === address.toLowerCase();
@@ -110,6 +196,7 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
   const [toast, setToast]                       = useState(null);
   const [stats, setStats]                       = useState({ sales: 0, volume: 0, topSale: 0 });
   const [soldEvents, setSoldEvents]             = useState([]);
+  const [purchasedItem, setPurchasedItem]       = useState(null);
 
   // Fetch sales stats from Sold events
   useEffect(() => {
@@ -169,7 +256,7 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
     setBuyingId(item.tokenId);
     try {
       await buyNFT(signer, item.nft, item.tokenId, item.price);
-      setToast({ msg: `Bought ${item.name} successfully!`, type: 'success' });
+      setPurchasedItem(item);
     } catch (e) {
       setToast({ msg: e?.shortMessage || e?.message || 'Buy failed', type: 'error' });
     }
@@ -215,6 +302,14 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
           <span>{toast.type === 'success' ? '✓' : '✕'}</span>
           <span>{toast.msg}</span>
         </div>
+      )}
+
+      {purchasedItem && (
+        <BuySuccessModal
+          item={purchasedItem}
+          txHash={txHash}
+          onClose={() => { setPurchasedItem(null); setActiveTab('mine'); }}
+        />
       )}
 
       <div style={{ maxWidth: 980, margin: '0 auto', padding: '0 20px' }}>
