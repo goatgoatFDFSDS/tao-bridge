@@ -13,6 +13,7 @@ import Swap from './components/Swap';
 import Pools from './components/Pools';
 import NFTMarket from './components/NFTMarket';
 import WalletModal from './components/WalletModal';
+import Chart from './components/Chart';
 
 // ─── Chain metadata ────────────────────────────────────────────────────────
 const CHAIN_META = {
@@ -135,7 +136,7 @@ export default function App() {
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [tradeOpen,       setTradeOpen]       = useState(false);
 
-  const TRADE_PAGES = ['swap', 'pools'];
+  const TRADE_PAGES = ['swap', 'pools', 'chart'];
   const isTradeActive = TRADE_PAGES.includes(page);
   const [direction,    setDirection]    = useState('to');     // 'to' | 'from'
   const [srcChainId,   setSrcChainId]   = useState(8453);
@@ -285,6 +286,7 @@ export default function App() {
                   {[
                     { label:'Swap',  p:'swap',  url:'/swap' },
                     { label:'Pools', p:'pools', url:'/pools' },
+                    { label:'Chart', p:'chart', url:'/chart' },
                   ].map(({ label, p, url }) => (
                     <button key={p}
                       className={`nav-pill ${page === p ? 'active' : ''}`}
@@ -359,6 +361,9 @@ export default function App() {
           switchChain={switchChain}
         />
       )}
+
+      {/* ── Chart page ───────────────────────────────────────────────────── */}
+      {page === 'chart' && <Chart />}
 
       {/* ── NFT Marketplace page ─────────────────────────────────────────── */}
       {page === 'nfts' && (
