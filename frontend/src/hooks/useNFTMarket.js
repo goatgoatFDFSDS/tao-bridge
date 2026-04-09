@@ -31,7 +31,8 @@ const ERC721_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)',
 ];
 
-const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
+const BITTENSOR_RPC  = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
+const LITE_RPC       = 'https://lite.chain.opentensor.ai';
 const IPFS_GW = 'https://ipfs.io/ipfs/';
 
 function resolveIPFS(uri) {
@@ -111,30 +112,24 @@ export function useNFTMarket(address) {
     }
   }, []);
 
-  // Fetch tokens owned by current user — uses Transfer events (ERC721A compatible)
+  // Fetch tokens owned by current user — mirrors useMyPass approach (single query, lite RPC)
   const fetchMyTokens = useCallback(async (nftAddress = PASS_NFT) => {
     if (!address) { setMyTokens([]); return; }
     try {
-      const provider = new ethers.JsonRpcProvider(BITTENSOR_RPC);
+      // Use lite RPC — same as useMyPass which reliably works
+      const provider = new ethers.JsonRpcProvider(LITE_RPC);
       const nft = new ethers.Contract(nftAddress, ERC721_ABI, provider);
 
-      // Phase 1: balanceOf quick check
-      const balance = Number(await nft.balanceOf(address).catch(() => 0n));
-      if (balance === 0) { setMyTokens([]); return; }
+      // Phase 1: fast balanceOf check
+      const balance = await nft.balanceOf(address).catch(() => 0n);
+      if (balance === 0n) { setMyTokens([]); return; }
 
-      // Phase 2: scan Transfer events from chain genesis in 50k-block chunks
-      const latest     = await provider.getBlockNumber();
-      const CHUNK      = 50_000;
-      const startBlock = 0;
-      const allEvents = [];
-      for (let from = startBlock; from <= latest; from += CHUNK) {
-        const to = Math.min(from + CHUNK - 1, latest);
-        try {
-          const chunk = await nft.queryFilter(nft.filters.Transfer(null, address), from, to);
-          allEvents.push(...chunk);
-        } catch { /* skip failing chunk */ }
-      }
-      const events = allEvents;
+      // Phase 2: single Transfer event query, last 250k blocks (same as useMyPass)
+      const latest    = await provider.getBlockNumber();
+      const fromBlock = Math.max(0, latest - 250_000);
+      const events    = await nft.queryFilter(
+        nft.filters.Transfer(null, address), fromBlock, latest
+      ).catch(() => []);
 
       const candidates = [...new Map(
         events.map(ev => [ev.args.tokenId.toString(), ev.args.tokenId])
