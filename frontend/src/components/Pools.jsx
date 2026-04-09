@@ -338,7 +338,7 @@ export default function Pools({ address, signer, chainId, connect, switchChain }
         <p className="page-sub">Provide liquidity and earn 0.3% on every swap</p>
       </div>
 
-      <div style={{ maxWidth: 860, width: '100%', margin: '0 auto', padding: '0 20px', boxSizing: 'border-box' }}>
+      <div className="page-content">
         {/* Header actions */}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <div style={{ fontSize:'0.9rem', color:'var(--text-muted)' }}>

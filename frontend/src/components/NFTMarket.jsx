@@ -312,7 +312,7 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
         />
       )}
 
-      <div style={{ maxWidth: 980, width: '100%', margin: '0 auto', padding: '0 20px', boxSizing: 'border-box' }}>
+      <div className="page-content" style={{ maxWidth: 980 }}>
 
         {/* Collection header banner */}
         {(() => {
