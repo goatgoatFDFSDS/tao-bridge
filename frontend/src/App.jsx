@@ -135,7 +135,7 @@ export default function App() {
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [tradeOpen,       setTradeOpen]       = useState(false);
 
-  const TRADE_PAGES = ['bridge', 'swap', 'pools'];
+  const TRADE_PAGES = ['swap', 'pools'];
   const isTradeActive = TRADE_PAGES.includes(page);
   const [direction,    setDirection]    = useState('to');     // 'to' | 'from'
   const [srcChainId,   setSrcChainId]   = useState(8453);
@@ -283,9 +283,8 @@ export default function App() {
                 boxShadow:'0 8px 32px rgba(0,0,0,0.4)',
               }}>
                 {[
-                  { label:'Bridge', p:'bridge', url:'/' },
-                  { label:'Swap',   p:'swap',   url:'/swap' },
-                  { label:'Pools',  p:'pools',  url:'/pools' },
+                  { label:'Swap',  p:'swap',  url:'/swap' },
+                  { label:'Pools', p:'pools', url:'/pools' },
                 ].map(({ label, p, url }) => (
                   <button key={p}
                     className={`nav-pill ${page === p ? 'active' : ''}`}
@@ -313,7 +312,7 @@ export default function App() {
           {/* Separator */}
           <span style={{ width:1, height:18, background:'var(--border)', margin:'0 4px', display:'inline-block', alignSelf:'center' }} />
 
-          <a className="nav-pill" href="https://evm.taostats.io" target="_blank" rel="noreferrer" style={{ textDecoration:'none' }}>Explorer</a>
+          <button className={`nav-pill ${page === 'bridge' ? 'active' : ''}`} onClick={() => { setPage('bridge'); window.history.pushState(null,'','/'); }}>Bridge</button>
           <button className="nav-pill" onClick={() => setShowDocs(true)}>Docs</button>
           <a className="nav-pill" href="https://t.me/TAOflowTradingBot" target="_blank" rel="noreferrer" style={{ textDecoration:'none' }}>Bot</a>
         </nav>
