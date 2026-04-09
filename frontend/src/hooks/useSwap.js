@@ -3,10 +3,12 @@ import { ethers } from 'ethers';
 
 // Deployed on Bittensor EVM (chain 964)
 export const DEX_CONTRACTS = {
-  WTAO:             '0x8feD645e8138DAE5cB71A2fEC8598D868Ab92E34',
+  WTAO:             '0x8feD645e8138DAE5cB71A2fEC8598D868Ab92E34', // internal use only
   UniswapV2Factory: '0x7d7C38A0E671f4a05fEf9B114EF20d4Af4f6C130',
   UniswapV2Router02:'0x26C46ABa486fe8d7902acB4CB923f34663B22cA4',
   NFTMarketplace:   '0x8580Ea3b897fEDc450f8e9DC624BEe833e3670c0',
+  USDC:             '0xB833E8137FEDf80de7E908dc6fea43a029142F20',
+  TFLOW:            '0x743fD5E76714394C1DB6790E83b9B50cdeC03A91',
 };
 
 const ROUTER_ABI = [
@@ -39,7 +41,7 @@ const WTAO_ABI = [
   'function withdraw(uint wad)',
 ];
 
-const BITTENSOR_RPC = 'https://lite.chain.opentensor.ai';
+const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
 export function useSwap(signer) {
   const [status, setStatus]   = useState('idle'); // idle | quoting | approving | swapping | done | error

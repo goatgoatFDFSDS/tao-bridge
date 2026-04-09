@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ethers } from 'ethers';
 import { useSwap, DEX_CONTRACTS, ERC20_ABI } from '../hooks/useSwap';
 
-const BITTENSOR_RPC = 'https://lite.chain.opentensor.ai';
+const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
-// Well-known tokens on Bittensor EVM
+// Well-known tokens on Bittensor EVM (chain 964)
 const KNOWN_TOKENS = [
-  { symbol: 'TAO',  address: 'TAO',                                           decimals: 18, isNative: true },
-  { symbol: 'WTAO', address: DEX_CONTRACTS.WTAO,                              decimals: 18 },
+  { symbol: 'TAO',   address: 'TAO',                   decimals: 18, isNative: true },
+  { symbol: 'USDC',  address: DEX_CONTRACTS.USDC,       decimals: 6  },
+  { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW,      decimals: 18 },
 ];
 
 function TokenIcon({ symbol, size = 22 }) {

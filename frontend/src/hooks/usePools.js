@@ -27,13 +27,19 @@ const ROUTER_ABI = [
   'function removeLiquidityETH(address token, uint liquidity, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external returns (uint amountToken, uint amountETH)',
 ];
 
-const BITTENSOR_RPC = 'https://lite.chain.opentensor.ai';
+const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
 export { FACTORY_ABI, PAIR_ABI, ROUTER_ABI as POOL_ROUTER_ABI };
 
 async function getTokenMeta(address, provider) {
   if (address.toLowerCase() === DEX_CONTRACTS.WTAO.toLowerCase()) {
-    return { symbol: 'WTAO', name: 'Wrapped TAO', decimals: 18 };
+    return { symbol: 'TAO', name: 'Tao', decimals: 18 };
+  }
+  if (address.toLowerCase() === DEX_CONTRACTS.USDC?.toLowerCase()) {
+    return { symbol: 'USDC', name: 'USD Coin', decimals: 6 };
+  }
+  if (address.toLowerCase() === DEX_CONTRACTS.TFLOW?.toLowerCase()) {
+    return { symbol: 'TFLOW', name: 'TAOflow', decimals: 18 };
   }
   try {
     const c = new ethers.Contract(address, ERC20_ABI, provider);
