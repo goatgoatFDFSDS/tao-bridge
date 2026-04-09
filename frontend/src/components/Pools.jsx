@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { usePools } from '../hooks/usePools';
 import { DEX_CONTRACTS, ERC20_ABI } from '../hooks/useSwap';
 
-const BITTENSOR_RPC = 'https://lite.chain.opentensor.ai';
+const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
 function PoolRow({ pair, address, signer, onRefresh }) {
   const { addLiquidityETH, removeLiquidityETH, PAIR_ABI } = usePools();
@@ -224,7 +224,7 @@ export default function Pools({ address, signer, chainId, connect, switchChain }
               </div>
             </div>
             <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginBottom:12 }}>
-              WTAO: <span style={{ color:'var(--text-sub)', fontFamily:'monospace' }}>{DEX_CONTRACTS.WTAO}</span>
+              TFLOW: <span style={{ color:'var(--text-sub)', fontFamily:'monospace' }}>{DEX_CONTRACTS.TFLOW}</span>
             </div>
             <button className="btn-bridge" style={{ padding:'11px 0', width:'100%' }}
               onClick={handleCreatePool} disabled={creating}>

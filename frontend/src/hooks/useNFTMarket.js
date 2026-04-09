@@ -28,7 +28,7 @@ const ERC721_ABI = [
   'function name() external view returns (string)',
   'function symbol() external view returns (string)',
   'function totalSupply() external view returns (uint256)',
-  'function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256)',
+  'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)',
 ];
 
 const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';

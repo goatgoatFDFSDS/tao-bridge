@@ -6,9 +6,8 @@ const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4
 
 // Well-known tokens on Bittensor EVM (chain 964)
 const KNOWN_TOKENS = [
-  { symbol: 'TAO',   address: 'TAO',                   decimals: 18, isNative: true },
-  { symbol: 'USDC',  address: DEX_CONTRACTS.USDC,       decimals: 6  },
-  { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW,      decimals: 18 },
+  { symbol: 'TAO',   address: 'TAO',              decimals: 18, isNative: true },
+  { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW, decimals: 18 },
 ];
 
 function TokenIcon({ symbol, size = 22 }) {

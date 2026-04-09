@@ -12,7 +12,7 @@ const COLLECTIONS = [
     address: PASS_NFT,
     description: 'The official TAOflow Pass NFT. Holders get 0% bridge fees, trading bot access, reward boosts and full ecosystem access.',
     image: '/nft.png',
-    supply: 100,
+    supply: 500,
     chain: 'Bittensor EVM (964)',
     standard: 'ERC-721A',
   },
@@ -241,33 +241,23 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
         )}
 
         {/* Tabs + refresh */}
-        <div className="bridge-card" style={{ padding:'12px 16px', marginBottom:20 }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
-            <div>
-              <div style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>Marketplace fee</div>
-              <div style={{ fontSize:'0.88rem', fontWeight:600, color:'var(--cyan)' }}>2.5%</div>
-            </div>
-            <div style={{ marginLeft:'auto' }}>
-              <div style={{ display:'flex', gap:8 }}>
-                <button className={`dir-tab ${activeTab === 'listings' ? 'active' : ''}`}
-                  style={{ padding:'7px 14px', fontSize:'0.82rem' }}
-                  onClick={() => setActiveTab('listings')}>
-                  Listings ({listings.length})
-                </button>
-                {address && (
-                  <button className={`dir-tab ${activeTab === 'mine' ? 'active' : ''}`}
-                    style={{ padding:'7px 14px', fontSize:'0.82rem' }}
-                    onClick={() => setActiveTab('mine')}>
-                    My NFTs ({myTokens.length})
-                  </button>
-                )}
-                <button className="dir-tab" style={{ padding:'7px 14px', fontSize:'0.82rem' }}
-                  onClick={() => { fetchListings(activeCollection); fetchMyTokens(activeCollection); }}>
-                  Refresh
-                </button>
-              </div>
-            </div>
-          </div>
+        <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap' }}>
+          <button className={`dir-tab ${activeTab === 'listings' ? 'active' : ''}`}
+            style={{ padding:'7px 14px', fontSize:'0.82rem' }}
+            onClick={() => setActiveTab('listings')}>
+            Listings ({listings.length})
+          </button>
+          {address && (
+            <button className={`dir-tab ${activeTab === 'mine' ? 'active' : ''}`}
+              style={{ padding:'7px 14px', fontSize:'0.82rem' }}
+              onClick={() => setActiveTab('mine')}>
+              My NFTs ({myTokens.length})
+            </button>
+          )}
+          <button className="dir-tab" style={{ padding:'7px 14px', fontSize:'0.82rem' }}
+            onClick={() => { fetchListings(activeCollection); fetchMyTokens(activeCollection); }}>
+            Refresh
+          </button>
         </div>
 
         {/* tx hash */}
