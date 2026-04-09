@@ -2239,6 +2239,7 @@ select.chain-select option, select.token-select option {
 
 .page-wrap {
   flex: 1;
+  width: 100%;
   padding: 40px 20px 60px;
 }
 
