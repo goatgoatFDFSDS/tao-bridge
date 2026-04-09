@@ -32,6 +32,25 @@ const ERC721_ABI = [
 ];
 
 const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
+const IPFS_GW = 'https://ipfs.io/ipfs/';
+
+function resolveIPFS(uri) {
+  if (!uri) return null;
+  if (uri.startsWith('ipfs://')) return IPFS_GW + uri.slice(7);
+  return uri;
+}
+
+async function fetchMetadata(tokenURI) {
+  const url = resolveIPFS(tokenURI);
+  if (!url) return null;
+  try {
+    const res = await fetch(url).catch(() => null);
+    if (!res?.ok) return null;
+    const meta = await res.json().catch(() => null);
+    if (meta?.image) meta.image = resolveIPFS(meta.image);
+    return meta;
+  } catch { return null; }
+}
 
 export { MARKETPLACE_ABI, ERC721_ABI };
 
@@ -69,14 +88,7 @@ export function useNFTMarket(address) {
           try {
             const nft = new ethers.Contract(nftAddress, ERC721_ABI, provider);
             tokenURI = await nft.tokenURI(tokenId);
-            // Try to fetch metadata if it's an http/https URL
-            if (tokenURI.startsWith('http')) {
-              const res = await fetch(tokenURI).catch(() => null);
-              if (res?.ok) metadata = await res.json().catch(() => null);
-            } else if (tokenURI.startsWith('data:application/json')) {
-              const json = tokenURI.replace('data:application/json;base64,', '');
-              metadata = JSON.parse(atob(json));
-            }
+            metadata = await fetchMetadata(tokenURI);
           } catch {}
 
           active.push({
@@ -145,13 +157,7 @@ export function useNFTMarket(address) {
         let metadata = null;
         try {
           tokenURI = await nft.tokenURI(tokenId);
-          if (tokenURI.startsWith('http')) {
-            const res = await fetch(tokenURI).catch(() => null);
-            if (res?.ok) metadata = await res.json().catch(() => null);
-          } else if (tokenURI.startsWith('data:application/json')) {
-            const json = tokenURI.replace('data:application/json;base64,', '');
-            metadata = JSON.parse(atob(json));
-          }
+          metadata = await fetchMetadata(tokenURI);
         } catch {}
         return {
           tokenId,
