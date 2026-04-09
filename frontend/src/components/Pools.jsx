@@ -8,7 +8,6 @@ const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4
 const KNOWN_TOKENS = [
   { symbol: 'TAO',   address: DEX_CONTRACTS.WTAO,  color: '#00d4aa', bg: 'rgba(0,212,170,0.15)', decimals: 18 },
   { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)', decimals: 18 },
-  { symbol: 'USDC',  address: DEX_CONTRACTS.USDC,  color: '#2775ca', bg: 'rgba(39,117,202,0.15)', decimals: 6  },
 ];
 
 function getDecimals(addr) {
@@ -381,7 +380,7 @@ export default function Pools({ address, signer, chainId, connect, switchChain }
         </div>
 
         {/* ── Existing pools ───────────────────────────────────────────── */}
-        <div style={{ width:'min(600px, 100%)', padding:'0 20px', boxSizing:'border-box' }}>
+        <div style={{ width:'min(480px, 100%)', padding:'0 20px', boxSizing:'border-box' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
             <div style={{ fontSize:'0.85rem', color:'var(--text-muted)', fontWeight:600 }}>
               {loading ? 'Loading pools...' : `${pairs.length} pool${pairs.length !== 1 ? 's' : ''}`}
@@ -416,7 +415,7 @@ export default function Pools({ address, signer, chainId, connect, switchChain }
         </div>
 
         {/* ── Info bar ─────────────────────────────────────────────────── */}
-        <div style={{ width:'min(600px, 100%)', padding:'0 20px', boxSizing:'border-box' }}>
+        <div style={{ width:'min(480px, 100%)', padding:'0 20px', boxSizing:'border-box' }}>
           <div className="bridge-card" style={{ padding:'14px 20px' }}>
             <div style={{ display:'flex', justifyContent:'space-around', alignItems:'center' }}>
               <div style={{ textAlign:'center' }}>
@@ -431,7 +430,7 @@ export default function Pools({ address, signer, chainId, connect, switchChain }
               <div style={{ width:1, height:32, background:'var(--border)' }} />
               <div style={{ textAlign:'center' }}>
                 <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginBottom:3 }}>DEX</div>
-                <div style={{ fontWeight:700, fontSize:'1rem' }}>Uniswap V2</div>
+                <div style={{ fontWeight:700, fontSize:'1rem' }}>TAOflow V2</div>
               </div>
             </div>
           </div>
