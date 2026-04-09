@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ethers } from 'ethers';
 
+const WC_PROJECT_ID = import.meta.env.VITE_WC_PROJECT_ID || '';
+
 export const CHAINS = {
   1:    { name: 'Ethereum',      rpc: 'https://eth.llamarpc.com',             symbol: 'ETH', explorer: 'https://etherscan.io/tx/' },
   8453: { name: 'Base',          rpc: 'https://mainnet.base.org',             symbol: 'ETH', explorer: 'https://basescan.org/tx/' },
@@ -50,15 +52,23 @@ export function useWallet() {
     }
   }, []);
 
-  // Connect wallet → always lands on Bittensor EVM
+  // Connect wallet — forces account picker even if already connected
   const connect = useCallback(async () => {
     if (!window.ethereum) {
-      alert('MetaMask not found. Please install MetaMask.');
+      alert('No wallet found. Please install MetaMask or another EVM wallet.');
       return;
     }
     try {
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      // Switch to Bittensor EVM after connecting
+      // wallet_requestPermissions forces the account selector to appear
+      try {
+        await window.ethereum.request({
+          method: 'wallet_requestPermissions',
+          params: [{ eth_accounts: {} }],
+        });
+      } catch {
+        // fallback for wallets that don't support wallet_requestPermissions
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+      }
       await switchToBittensor();
       const bp = new ethers.BrowserProvider(window.ethereum);
       await _refresh(bp);
@@ -92,6 +102,27 @@ export function useWallet() {
       }
     }
   }, [switchToBittensor]);
+
+  // WalletConnect v2
+  const connectWC = useCallback(async () => {
+    if (!WC_PROJECT_ID) throw new Error('No WalletConnect Project ID configured');
+    const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
+    const wcProvider = await EthereumProvider.init({
+      projectId: WC_PROJECT_ID,
+      chains: [964],
+      optionalChains: [1, 8453, 56],
+      showQrModal: true,
+      metadata: {
+        name: 'TAOflow Bridge',
+        description: 'TAOflow Bridge & DEX',
+        url: 'https://taoflowbridge.xyz',
+        icons: ['https://taoflowbridge.xyz/favicon.png'],
+      },
+    });
+    await wcProvider.connect();
+    const bp = new ethers.BrowserProvider(wcProvider);
+    await _refresh(bp);
+  }, [_refresh]);
 
   const disconnect = useCallback(() => {
     setAddress(null); setChainId(null); setProvider(null); setSigner(null);
@@ -130,5 +161,5 @@ export function useWallet() {
     };
   }, [_refresh, disconnect]);
 
-  return { address, chainId, provider, signer, connect, disconnect, switchChain };
+  return { address, chainId, provider, signer, connect, connectWC, disconnect, switchChain, hasWC: !!WC_PROJECT_ID };
 }

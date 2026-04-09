@@ -12,6 +12,7 @@ import { usePassHolder } from './hooks/usePassHolder';
 import Swap from './components/Swap';
 import Pools from './components/Pools';
 import NFTMarket from './components/NFTMarket';
+import WalletModal from './components/WalletModal';
 
 // ─── Chain metadata ────────────────────────────────────────────────────────
 const CHAIN_META = {
@@ -116,7 +117,7 @@ function TaoPriceBadge({ price, change24h }) {
 
 // ─── Main App ──────────────────────────────────────────────────────────────
 export default function App() {
-  const { address, chainId, signer, connect, disconnect, switchChain } = useWallet();
+  const { address, chainId, signer, connect, connectWC, disconnect, switchChain, hasWC } = useWallet();
   const { status, txHash, bridgeToTao, bridgeFromTao, getBalance, reset } = useBridge(signer);
   const { price: taoPrice, change24h } = useTaoPrice();
   const { txs, loading: histLoading, refresh: refreshHistory } = useTxHistory(address);
@@ -130,7 +131,8 @@ export default function App() {
     if (p === '/nfts')   return 'nfts';
     return 'bridge';
   });
-  const [showDocs,     setShowDocs]     = useState(false);
+  const [showDocs,        setShowDocs]        = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
   const [direction,    setDirection]    = useState('to');     // 'to' | 'from'
   const [srcChainId,   setSrcChainId]   = useState(8453);
   const [tokenSymbol,  setTokenSymbol]  = useState('USDC');
@@ -186,7 +188,7 @@ export default function App() {
 
   // ── Handle bridge ─────────────────────────────────────────────────────────
   const handleBridge = useCallback(async () => {
-    if (!address) { connect(); return; }
+    if (!address) { setShowWalletModal(true); return; }
     if (isWrongChain) { switchChain(expectedChain); return; }
     if (!amount || parseFloat(amount) <= 0) return;
     if (!recipient) return;
@@ -294,7 +296,7 @@ export default function App() {
               </button>
             </div>
           ) : (
-            <button className="btn-connect" onClick={connect}>Connect Wallet</button>
+            <button className="btn-connect" onClick={() => setShowWalletModal(true)}>Connect Wallet</button>
           )}
         </div>
       </header>
@@ -305,7 +307,7 @@ export default function App() {
           address={address}
           signer={signer}
           chainId={chainId}
-          connect={connect}
+          connect={() => setShowWalletModal(true)}
           switchChain={switchChain}
         />
       )}
@@ -316,7 +318,7 @@ export default function App() {
           address={address}
           signer={signer}
           chainId={chainId}
-          connect={connect}
+          connect={() => setShowWalletModal(true)}
           switchChain={switchChain}
         />
       )}
@@ -327,7 +329,7 @@ export default function App() {
           address={address}
           signer={signer}
           chainId={chainId}
-          connect={connect}
+          connect={() => setShowWalletModal(true)}
           switchChain={switchChain}
         />
       )}
@@ -338,7 +340,7 @@ export default function App() {
           address={address}
           txs={txs}
           taoPrice={taoPrice}
-          connect={connect}
+          connect={() => setShowWalletModal(true)}
         />
       )}
 
@@ -717,6 +719,15 @@ export default function App() {
       )}
 
       {showDocs && <DocsModal onClose={() => setShowDocs(false)} />}
+
+      {showWalletModal && (
+        <WalletModal
+          onConnect={connect}
+          onConnectWC={connectWC}
+          hasWC={hasWC}
+          onClose={() => setShowWalletModal(false)}
+        />
+      )}
 
       {/* ── Support chat button ─────────────────────────────────────────── */}
       <a
