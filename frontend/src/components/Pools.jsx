@@ -8,6 +8,7 @@ const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4
 const KNOWN_TOKENS = [
   { symbol: 'TAO',   address: DEX_CONTRACTS.WTAO,  color: '#00d4aa', bg: 'rgba(0,212,170,0.15)', decimals: 18 },
   { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)', decimals: 18 },
+  { symbol: 'TEST',  address: '0x2B4D6e3edFBad9B1B131BeC6ED4C9952362CfFCb', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', decimals: 18 },
 ];
 
 function getDecimals(addr) {
