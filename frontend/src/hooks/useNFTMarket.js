@@ -112,61 +112,39 @@ export function useNFTMarket(address) {
     }
   }, []);
 
-  // Fetch tokens owned by current user
+  // Fetch tokens owned by current user — direct ownerOf scan (no event dependence)
   const fetchMyTokens = useCallback(async (nftAddress = PASS_NFT) => {
     if (!address) { setMyTokens([]); return; }
     try {
-      const provider = new ethers.JsonRpcProvider(LITE_RPC);
+      const provider = new ethers.JsonRpcProvider(BITTENSOR_RPC);
       const nft = new ethers.Contract(nftAddress, ERC721_ABI, provider);
 
-      // Phase 1: balanceOf — if throws, skip early-exit (don't treat error as 0)
+      // Phase 1: balanceOf fast check
       let balance = 0n;
       try { balance = await nft.balanceOf(address); } catch {}
       if (balance === 0n) { setMyTokens([]); return; }
 
-      // Phase 2: Transfer event scan — try last 250k blocks first
-      const latest    = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, latest - 250_000);
-      const events    = await nft.queryFilter(
-        nft.filters.Transfer(null, address), fromBlock, latest
-      ).catch(() => []);
+      // Phase 2: scan ownerOf for all token IDs (no event dep — works for ERC721A batch mints)
+      const total = Number(await nft.totalSupply().catch(() => 500n));
+      const ownedIds = [];
 
-      let candidates = [...new Map(
-        events.map(ev => [ev.args.tokenId.toString(), ev.args.tokenId])
-      ).values()];
-
-      // Fallback: if event scan found nothing but balance > 0 (NFT minted long ago),
-      // brute-force ownerOf across full collection
-      if (candidates.length === 0 && balance > 0n) {
-        const total = Number(await nft.totalSupply().catch(() => 500n));
-        const allIds = Array.from({ length: total }, (_, i) => BigInt(i));
-        // Check in batches of 50 to avoid flooding RPC
-        for (let i = 0; i < allIds.length; i += 50) {
-          const batch = allIds.slice(i, i + 50);
-          const results = await Promise.all(
-            batch.map(async (tid) => {
-              try {
-                const owner = await nft.ownerOf(tid);
-                return owner.toLowerCase() === address.toLowerCase() ? tid : null;
-              } catch { return null; }
-            })
-          );
-          candidates.push(...results.filter(Boolean));
-          if (candidates.length >= Number(balance)) break;
-        }
+      for (let i = 0; i < total + 1; i += 50) {
+        const batch = Array.from({ length: Math.min(50, total + 1 - i) }, (_, j) => BigInt(i + j));
+        const results = await Promise.all(
+          batch.map(async (tid) => {
+            try {
+              const owner = await nft.ownerOf(tid);
+              return owner.toLowerCase() === address.toLowerCase() ? tid.toString() : null;
+            } catch { return null; }
+          })
+        );
+        ownedIds.push(...results.filter(Boolean));
+        if (ownedIds.length >= Number(balance)) break;
       }
 
-      // Verify still owned (for event-scan candidates)
-      const ownedIds = (await Promise.all(
-        candidates.map(async (tid) => {
-          try {
-            const owner = await nft.ownerOf(tid);
-            return owner.toLowerCase() === address.toLowerCase() ? tid.toString() : null;
-          } catch { return null; }
-        })
-      )).filter(Boolean).sort((a, b) => Number(a) - Number(b));
+      ownedIds.sort((a, b) => Number(a) - Number(b));
 
-      // Fetch metadata for each
+      // Phase 3: fetch metadata
       const tokens = await Promise.all(ownedIds.map(async (tokenId) => {
         let tokenURI = '';
         let metadata = null;
