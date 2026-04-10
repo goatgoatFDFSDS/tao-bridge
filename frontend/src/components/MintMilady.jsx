@@ -4,6 +4,7 @@ import { useMintMilady } from '../hooks/useMintMilady';
 
 const EXPLORER    = 'https://evm.taostats.io/tx/';
 const CONTRACT_TX = 'https://evm.taostats.io/address/0x7A795bd7FfC44b64e7De997cD9732b5614b95694';
+const TWITTER     = 'https://x.com/Taomilady';
 
 export default function MintMilady({ address, signer, chainId, switchChain, connect }) {
   const {
@@ -107,9 +108,25 @@ export default function MintMilady({ address, signer, chainId, switchChain, conn
           }}>
             TAO MILADY
           </h1>
-          <p style={{ margin:'0 0 32px', color:'rgba(255,255,255,0.45)', fontSize:'0.9rem', textAlign:'center', letterSpacing:'0.08em' }}>
+          <p style={{ margin:'0 0 16px', color:'rgba(255,255,255,0.45)', fontSize:'0.9rem', textAlign:'center', letterSpacing:'0.08em' }}>
             1100 UNIQUE NFTs ON BITTENSOR EVM
           </p>
+
+          <a href={TWITTER} target="_blank" rel="noreferrer" style={{
+            display:'inline-flex', alignItems:'center', gap:7, marginBottom:28,
+            padding:'6px 16px', borderRadius:99,
+            background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)',
+            color:'rgba(255,255,255,0.7)', fontSize:'0.82rem', fontWeight:600,
+            textDecoration:'none', transition:'all 0.2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.1)'; e.currentTarget.style.color='#fff'; }}
+          onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.06)'; e.currentTarget.style.color='rgba(255,255,255,0.7)'; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            @Taomilady
+          </a>
 
           {/* Supply bar */}
           <div style={{ width:'100%', maxWidth:440, marginBottom:32 }}>
