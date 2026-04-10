@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ethers } from 'ethers';
 import { useSwap, DEX_CONTRACTS, ERC20_ABI } from '../hooks/useSwap';
+import { useTaoPrice } from '../hooks/useTaoPrice';
 import ChartPanel from './ChartPanel';
 
 const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
 // Well-known tokens on Bittensor EVM (chain 964)
 const KNOWN_TOKENS = [
-  { symbol: 'TAO',   address: 'TAO',              decimals: 18, isNative: true },
+  { symbol: 'TAO',   address: 'TAO',               decimals: 18, isNative: true },
+  { symbol: 'WTAO',  address: DEX_CONTRACTS.WTAO,  decimals: 18 },
   { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW, decimals: 18 },
-  { symbol: 'TEST',  address: '0x2B4D6e3edFBad9B1B131BeC6ED4C9952362CfFCb', decimals: 18 },
 ];
 
 function TokenIcon({ symbol, size = 22 }) {
@@ -29,12 +30,13 @@ function TokenIcon({ symbol, size = 22 }) {
 
 export default function Swap({ address, signer, chainId, connect, switchChain }) {
   const { status, txHash, error, getAmountsOut, swap, reset, ROUTER_ABI } = useSwap(signer);
+  const { price: taoPrice } = useTaoPrice();
 
-  const [tokenIn,      setTokenIn]      = useState(KNOWN_TOKENS[0]);
-  const [tokenOut,     setTokenOut]     = useState(KNOWN_TOKENS[1]);
+  const [tokenIn,      setTokenIn]      = useState(KNOWN_TOKENS[0]); // TAO
+  const [tokenOut,     setTokenOut]     = useState(KNOWN_TOKENS[2]); // TFLOW
   const [amountIn,     setAmountIn]     = useState('');
   const [amountOut,    setAmountOut]    = useState('');
-  const [slippage,     setSlippage]     = useState(50);  // bps
+  const [slippage,     setSlippage]     = useState(1000);  // bps
   const [showSettings, setShowSettings] = useState(false);
   const [customSlip,   setCustomSlip]   = useState('');
   const [balanceIn,    setBalanceIn]    = useState('0');
@@ -58,8 +60,8 @@ export default function Swap({ address, signer, chainId, connect, switchChain })
         return ethers.formatEther(bal);
       }
       const c = new ethers.Contract(token.address, ERC20_ABI, provider);
-      const [bal, dec] = await Promise.all([c.balanceOf(userAddress), c.decimals()]);
-      return ethers.formatUnits(bal, dec);
+      const bal = await c.balanceOf(userAddress);
+      return ethers.formatUnits(bal, token.decimals || 18);
     } catch { return '0'; }
   }, []);
 
@@ -172,7 +174,7 @@ export default function Swap({ address, signer, chainId, connect, switchChain })
     !amountIn || parseFloat(amountIn) <= 0 || !amountOut
   );
 
-  const slippageLabel = slippage === 10 ? '0.1%' : slippage === 50 ? '0.5%' : slippage === 100 ? '1%' : `${(slippage / 100).toFixed(2)}%`;
+  const slippageLabel = slippage === 50 ? '0.5%' : slippage === 100 ? '1%' : slippage === 300 ? '3%' : slippage === 500 ? '5%' : slippage === 1000 ? '10%' : `${(slippage / 100).toFixed(2)}%`;
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -245,7 +247,7 @@ export default function Swap({ address, signer, chainId, connect, switchChain })
 
         {/* ── Chart panel (left) ────────────────────────────────────────── */}
         <div style={{ flex:'1 1 420px', minWidth:300, minHeight:560 }}>
-          <ChartPanel token={tokenOut.isNative ? tokenIn : tokenOut} />
+          <ChartPanel token={tokenOut.isNative ? tokenIn : tokenOut} taoPrice={taoPrice} />
         </div>
 
         {/* ── Swap card (right) ─────────────────────────────────────────── */}
@@ -267,10 +269,10 @@ export default function Swap({ address, signer, chainId, connect, switchChain })
             <div className="slippage-panel">
               <div style={{ fontSize:'0.8rem', color:'var(--text-muted)', marginBottom:8 }}>Max slippage</div>
               <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
-                {[10, 50, 100].map(v => (
+                {[50, 100, 300, 500, 1000].map(v => (
                   <button key={v} className={`slip-btn ${slippage === v && !customSlip ? 'active' : ''}`}
                     onClick={() => { setSlippage(v); setCustomSlip(''); }}>
-                    {v === 10 ? '0.1%' : v === 50 ? '0.5%' : '1%'}
+                    {v === 50 ? '0.5%' : v === 100 ? '1%' : v === 300 ? '3%' : v === 500 ? '5%' : '10%'}
                   </button>
                 ))}
                 <input className="slip-input" placeholder="Custom %" value={customSlip}

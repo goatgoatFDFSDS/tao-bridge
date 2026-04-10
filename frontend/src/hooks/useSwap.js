@@ -8,7 +8,7 @@ export const DEX_CONTRACTS = {
   UniswapV2Router02:'0x26C46ABa486fe8d7902acB4CB923f34663B22cA4',
   NFTMarketplace:   '0x8580Ea3b897fEDc450f8e9DC624BEe833e3670c0',
   USDC:             '0xB833E8137FEDf80de7E908dc6fea43a029142F20',
-  TFLOW:            '0x743fD5E76714394C1DB6790E83b9B50cdeC03A91',
+  TFLOW:            '0xb6411e69Cc79814d87d8b3f54885315217Bddf02',
 };
 
 const ROUTER_ABI = [
@@ -40,6 +40,7 @@ const WTAO_ABI = [
   'function deposit() payable',
   'function withdraw(uint wad)',
 ];
+
 
 const BITTENSOR_RPC = 'https://api-bittensor-mainnet.n.dwellir.com/514a23e2-83e4-4212-8388-1979709224b6';
 
@@ -74,7 +75,21 @@ export function useSwap(signer) {
       // Build slippage-adjusted min
       const minOut = amountOutMin - (amountOutMin * BigInt(slippage)) / 10000n;
 
-      if (tokenIn === 'TAO') {
+      if (tokenIn === 'TAO' && tokenOut === DEX_CONTRACTS.WTAO) {
+        // TAO → WTAO: wrap
+        setStatus('swapping');
+        const wtao = new ethers.Contract(DEX_CONTRACTS.WTAO, WTAO_ABI, signer);
+        const tx = await wtao.deposit({ value: amountIn });
+        setTxHash(tx.hash);
+        await tx.wait();
+      } else if (tokenIn === DEX_CONTRACTS.WTAO && tokenOut === 'TAO') {
+        // WTAO → TAO: unwrap
+        setStatus('swapping');
+        const wtao = new ethers.Contract(DEX_CONTRACTS.WTAO, WTAO_ABI, signer);
+        const tx = await wtao.withdraw(amountIn);
+        setTxHash(tx.hash);
+        await tx.wait();
+      } else if (tokenIn === 'TAO') {
         // TAO → token: swapExactETHForTokens
         setStatus('swapping');
         const path = [DEX_CONTRACTS.WTAO, tokenOut];
@@ -84,8 +99,8 @@ export function useSwap(signer) {
         setTxHash(tx.hash);
         await tx.wait();
       } else if (tokenOut === 'TAO') {
-        // token → TAO: swapExactTokensForETH
-        // Approve first
+        // token → TAO: swapExactTokensForTokens (→ WTAO) then withdraw
+        // swapExactTokensForETH is broken on this router; this achieves the same result
         const tokenContract = new ethers.Contract(tokenIn, ERC20_ABI, signer);
         const allowance = await tokenContract.allowance(to, DEX_CONTRACTS.UniswapV2Router02);
         if (allowance < amountIn) {
@@ -95,9 +110,17 @@ export function useSwap(signer) {
         }
         setStatus('swapping');
         const path = [tokenIn, DEX_CONTRACTS.WTAO];
-        const tx = await router.swapExactTokensForETH(amountIn, minOut, path, to, deadline);
+        const wtao = new ethers.Contract(DEX_CONTRACTS.WTAO, WTAO_ABI, signer);
+        const tx = await router.swapExactTokensForTokens(amountIn, minOut, path, to, deadline);
         setTxHash(tx.hash);
         await tx.wait();
+        // Wait for RPC to reflect new state, then unwrap all WTAO → native TAO
+        await new Promise(r => setTimeout(r, 3000));
+        const wtaoBal = await wtao.balanceOf(to);
+        if (wtaoBal > 0n) {
+          const unwrapTx = await wtao.withdraw(wtaoBal);
+          await unwrapTx.wait();
+        }
       } else {
         // token → token
         const tokenContract = new ethers.Contract(tokenIn, ERC20_ABI, signer);

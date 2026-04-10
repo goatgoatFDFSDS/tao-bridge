@@ -46,17 +46,29 @@ function fmtAmt(v, decimals = 18) {
 }
 
 // token = { symbol, address, decimals, color }
-export default function ChartPanel({ token }) {
+function fmtMcap(usd) {
+  if (!usd || usd <= 0) return null;
+  if (usd >= 1_000_000_000) return '$' + (usd / 1_000_000_000).toFixed(2) + 'B';
+  if (usd >= 1_000_000)     return '$' + (usd / 1_000_000).toFixed(2) + 'M';
+  if (usd >= 1_000)         return '$' + (usd / 1_000).toFixed(1) + 'K';
+  return '$' + usd.toFixed(0);
+}
+
+const ERC20_TOTAL_SUPPLY_ABI = ['function totalSupply() view returns (uint256)', 'function decimals() view returns (uint8)'];
+
+export default function ChartPanel({ token, taoPrice }) {
   const [tf,      setTf]      = useState(TIMEFRAMES[1]);
   const [price,   setPrice]   = useState(null);
   const [change,  setChange]  = useState(null);
   const [trades,  setTrades]  = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mcap,    setMcap]    = useState(null);
 
-  const chartRef  = useRef(null);
-  const chartInst = useRef(null);
-  const seriesRef = useRef(null);
-  const tokenRef  = useRef(token);
+  const chartRef    = useRef(null);
+  const chartInst   = useRef(null);
+  const seriesRef   = useRef(null);
+  const tokenRef    = useRef(token);
+  const taoPriceRef = useRef(taoPrice);
 
   const color = token?.color || '#00d4aa';
 
@@ -84,6 +96,9 @@ export default function ChartPanel({ token }) {
     ro.observe(chartRef.current);
     return () => { ro.disconnect(); chart.remove(); };
   }, []); // only once
+
+  // Keep refs current
+  useEffect(() => { taoPriceRef.current = taoPrice; }, [taoPrice]);
 
   // Update series color when token changes
   useEffect(() => {
@@ -133,6 +148,14 @@ export default function ChartPanel({ token }) {
         const old = chartData[0].value;
         setPrice(cur);
         setChange(old > 0 ? ((cur - old) / old) * 100 : 0);
+
+        // Market cap = totalSupply × priceInTao × taoPriceUSD
+        try {
+          const tokenC = new ethers.Contract(tok.address, ERC20_TOTAL_SUPPLY_ABI, provider);
+          const [supply, dec] = await Promise.all([tokenC.totalSupply(), tokenC.decimals()]);
+          const supplyF = parseFloat(ethers.formatUnits(supply, dec));
+          if (supplyF > 0 && cur > 0) setMcap(supplyF * cur * (taoPriceRef.current || 0));
+        } catch {}
       }
 
       // Trade history
@@ -143,11 +166,11 @@ export default function ChartPanel({ token }) {
         let isBuy, taoAmt, tokAmt;
         if (taoIsToken0) {
           isBuy = amount0In > 0n;
-          taoAmt = isBuy ? amount0In : amount1Out;
+          taoAmt = isBuy ? amount0In : amount0Out;  // sell: TAO out = amount0Out
           tokAmt = isBuy ? amount1Out : amount1In;
         } else {
           isBuy = amount1In > 0n;
-          taoAmt = isBuy ? amount1In : amount0Out;
+          taoAmt = isBuy ? amount1In : amount1Out;  // sell: TAO out = amount1Out
           tokAmt = isBuy ? amount0Out : amount0In;
         }
         return { isBuy, wallet: to, taoAmt: parseFloat(ethers.formatEther(taoAmt)).toFixed(4), tokAmt: fmtAmt(tokAmt, tok.decimals), ts, txHash: ev.transactionHash };
@@ -181,6 +204,11 @@ export default function ChartPanel({ token }) {
           <span style={{ width:8, height:8, borderRadius:'50%', background:color, flexShrink:0 }} />
           <span style={{ fontWeight:700, fontSize:'0.95rem' }}>${token?.symbol}</span>
           <span style={{ color:'var(--text-muted)', fontSize:'0.82rem' }}>/TAO</span>
+          {mcap && (
+            <span style={{ fontSize:'0.75rem', color:'var(--text-muted)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--border)', borderRadius:5, padding:'1px 6px' }}>
+              MC {fmtMcap(mcap)}
+            </span>
+          )}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:14 }}>
           <span style={{ fontWeight:700, fontFamily:'monospace', fontSize:'0.9rem' }}>{fmtPrice(price)}</span>

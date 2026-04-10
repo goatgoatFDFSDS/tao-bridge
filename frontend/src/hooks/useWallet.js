@@ -103,6 +103,63 @@ export function useWallet() {
     }
   }, [switchToBittensor]);
 
+  // Talisman Wallet
+  const connectTalisman = useCallback(async () => {
+    const talisman = window.talismanEth;
+    if (!talisman) {
+      window.open('https://talisman.xyz', '_blank');
+      throw new Error('Talisman not installed');
+    }
+    await talisman.request({ method: 'eth_requestAccounts' });
+    try {
+      await talisman.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: BITTENSOR_CHAIN_PARAMS.chainId }] });
+    } catch (err) {
+      if (err.code === 4902 || err.code === -32603) {
+        await talisman.request({ method: 'wallet_addEthereumChain', params: [BITTENSOR_CHAIN_PARAMS] });
+      }
+    }
+    const bp = new ethers.BrowserProvider(talisman);
+    await _refresh(bp);
+  }, [_refresh]);
+
+  // Rabby Wallet
+  const connectRabby = useCallback(async () => {
+    const rabby = window.rabby;
+    if (!rabby) {
+      window.open('https://rabby.io', '_blank');
+      throw new Error('Rabby Wallet not installed');
+    }
+    await rabby.request({ method: 'eth_requestAccounts' });
+    try {
+      await rabby.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: BITTENSOR_CHAIN_PARAMS.chainId }] });
+    } catch (err) {
+      if (err.code === 4902 || err.code === -32603) {
+        await rabby.request({ method: 'wallet_addEthereumChain', params: [BITTENSOR_CHAIN_PARAMS] });
+      }
+    }
+    const bp = new ethers.BrowserProvider(rabby);
+    await _refresh(bp);
+  }, [_refresh]);
+
+  // OKX Wallet
+  const connectOKX = useCallback(async () => {
+    const okx = window.okxwallet;
+    if (!okx) {
+      window.open('https://www.okx.com/web3', '_blank');
+      throw new Error('OKX Wallet not installed');
+    }
+    await okx.request({ method: 'eth_requestAccounts' });
+    try {
+      await okx.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: BITTENSOR_CHAIN_PARAMS.chainId }] });
+    } catch (err) {
+      if (err.code === 4902 || err.code === -32603) {
+        await okx.request({ method: 'wallet_addEthereumChain', params: [BITTENSOR_CHAIN_PARAMS] });
+      }
+    }
+    const bp = new ethers.BrowserProvider(okx);
+    await _refresh(bp);
+  }, [_refresh]);
+
   // WalletConnect v2
   const connectWC = useCallback(async () => {
     if (!WC_PROJECT_ID) throw new Error('No WalletConnect Project ID configured');
@@ -161,5 +218,5 @@ export function useWallet() {
     };
   }, [_refresh, disconnect]);
 
-  return { address, chainId, provider, signer, connect, connectWC, disconnect, switchChain, hasWC: !!WC_PROJECT_ID };
+  return { address, chainId, provider, signer, connect, connectTalisman, connectRabby, connectOKX, connectWC, disconnect, switchChain, hasWC: !!WC_PROJECT_ID };
 }

@@ -464,7 +464,7 @@ export default function NFTMarket({ address, signer, chainId, connect, switchCha
             )}
             {!loading && listings.length > 0 && (
               <div className="nft-grid">
-                {listings.map(item => (
+                {[...listings].sort((a, b) => a.price < b.price ? -1 : a.price > b.price ? 1 : 0).map(item => (
                   <NFTCard key={`${item.nft}-${item.tokenId}`}
                     item={item} address={address} signer={signer}
                     onBuy={handleBuy}

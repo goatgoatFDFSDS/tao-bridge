@@ -12,6 +12,7 @@ import { usePassHolder } from './hooks/usePassHolder';
 import Swap from './components/Swap';
 import Pools from './components/Pools';
 import NFTMarket from './components/NFTMarket';
+import MintMilady from './components/MintMilady';
 import WalletModal from './components/WalletModal';
 import Chart from './components/Chart';
 
@@ -118,7 +119,7 @@ function TaoPriceBadge({ price, change24h }) {
 
 // ─── Main App ──────────────────────────────────────────────────────────────
 export default function App() {
-  const { address, chainId, signer, connect, connectWC, disconnect, switchChain, hasWC } = useWallet();
+  const { address, chainId, signer, connect, connectTalisman, connectRabby, connectOKX, connectWC, disconnect, switchChain, hasWC } = useWallet();
   const { status, txHash, bridgeToTao, bridgeFromTao, getBalance, reset } = useBridge(signer);
   const { price: taoPrice, change24h } = useTaoPrice();
   const { txs, loading: histLoading, refresh: refreshHistory } = useTxHistory(address);
@@ -130,6 +131,8 @@ export default function App() {
     if (p === '/swap')   return 'swap';
     if (p === '/pools')  return 'pools';
     if (p === '/nfts')   return 'nfts';
+    if (p === '/milady') return 'milady';
+    if (p === '/mint')   return 'milady';
     return 'bridge';
   });
   const [showDocs,        setShowDocs]        = useState(false);
@@ -305,6 +308,11 @@ export default function App() {
             Marketplace
           </button>
 
+          <button className={`nav-pill ${page === 'milady' ? 'active' : ''}`}
+            onClick={() => { setPage('milady'); window.history.pushState(null,'','/milady'); }}>
+            TAO Milady
+          </button>
+
           <button className={`nav-pill ${page === 'mypass' ? 'active' : ''}`}
             onClick={() => { setPage('mypass'); window.history.pushState(null,'','/mypass'); }}
             style={{ display:'flex', alignItems:'center', gap:5 }}>
@@ -382,6 +390,17 @@ export default function App() {
           address={address}
           txs={txs}
           taoPrice={taoPrice}
+          connect={() => setShowWalletModal(true)}
+        />
+      )}
+
+      {/* ── TAO Milady mint page ─────────────────────────────────────────── */}
+      {page === 'milady' && (
+        <MintMilady
+          address={address}
+          signer={signer}
+          chainId={chainId}
+          switchChain={switchChain}
           connect={() => setShowWalletModal(true)}
         />
       )}
@@ -765,6 +784,9 @@ export default function App() {
       {showWalletModal && (
         <WalletModal
           onConnect={connect}
+          onConnectTalisman={connectTalisman}
+          onConnectRabby={connectRabby}
+          onConnectOKX={connectOKX}
           onConnectWC={connectWC}
           hasWC={hasWC}
           onClose={() => setShowWalletModal(false)}

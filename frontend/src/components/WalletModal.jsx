@@ -24,6 +24,47 @@ const WALLETS = [
     ),
   },
   {
+    id: 'talisman',
+    name: 'Talisman',
+    description: 'Connect using Talisman Wallet',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#D5FF5C"/>
+        <path d="M16 6C10.477 6 6 10.477 6 16C6 21.523 10.477 26 16 26C21.523 26 26 21.523 26 16C26 10.477 21.523 6 16 6Z" fill="#1A1A1A"/>
+        <path d="M16 10C12.686 10 10 12.686 10 16C10 19.314 12.686 22 16 22C19.314 22 22 19.314 22 16C22 12.686 19.314 10 16 10Z" fill="#D5FF5C"/>
+        <circle cx="16" cy="16" r="3" fill="#1A1A1A"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'rabby',
+    name: 'Rabby Wallet',
+    description: 'Connect using Rabby Wallet',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#7B5DEF"/>
+        <path d="M8 20.5C8 17.5 10.5 15 13.5 15H19C21.2 15 23 16.8 23 19C23 21.2 21.2 23 19 23H13C10.2 23 8 20.8 8 18V20.5Z" fill="white" opacity="0.9"/>
+        <path d="M8 11.5C8 9.6 9.6 8 11.5 8H19.5C22 8 24 10 24 12.5C24 15 22 17 19.5 17H13C10.2 17 8 14.8 8 12V11.5Z" fill="white"/>
+        <circle cx="20" cy="12.5" r="2" fill="#7B5DEF"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'okx',
+    name: 'OKX Wallet',
+    description: 'Connect using OKX Web3 Wallet',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#000"/>
+        <rect x="6" y="6" width="8" height="8" rx="1" fill="white"/>
+        <rect x="18" y="6" width="8" height="8" rx="1" fill="white"/>
+        <rect x="6" y="18" width="8" height="8" rx="1" fill="white"/>
+        <rect x="18" y="18" width="8" height="8" rx="1" fill="white"/>
+        <rect x="12" y="12" width="8" height="8" rx="1" fill="white"/>
+      </svg>
+    ),
+  },
+  {
     id: 'walletconnect',
     name: 'WalletConnect',
     description: 'Scan with any mobile wallet',
@@ -35,13 +76,16 @@ const WALLETS = [
   },
 ];
 
-export default function WalletModal({ onConnect, onConnectWC, onClose, hasWC }) {
+export default function WalletModal({ onConnect, onConnectTalisman, onConnectRabby, onConnectOKX, onConnectWC, onClose, hasWC }) {
   const [connecting, setConnecting] = useState(null);
 
   const handle = async (id) => {
     setConnecting(id);
     try {
       if (id === 'injected') await onConnect();
+      else if (id === 'talisman') await onConnectTalisman();
+      else if (id === 'rabby') await onConnectRabby();
+      else if (id === 'okx') await onConnectOKX();
       else if (id === 'walletconnect') await onConnectWC();
       onClose();
     } catch {}

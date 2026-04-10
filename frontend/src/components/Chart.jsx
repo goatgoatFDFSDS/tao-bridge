@@ -8,7 +8,6 @@ const BLOCK_TIME = 12; // ~12s per block on Bittensor EVM
 
 const TOKENS = [
   { symbol: 'TFLOW', address: DEX_CONTRACTS.TFLOW, color: '#3b82f6', decimals: 18 },
-  { symbol: 'TEST',  address: '0x2B4D6e3edFBad9B1B131BeC6ED4C9952362CfFCb', color: '#f59e0b', decimals: 18 },
 ];
 
 const TIMEFRAMES = [

@@ -33,11 +33,15 @@ db.exec(`
     dest_chain_id  INTEGER NOT NULL,
     tx_hash        TEXT,
     status         TEXT    NOT NULL DEFAULT 'done',
-    processed_at   INTEGER DEFAULT (unixepoch())
+    processed_at   INTEGER DEFAULT (unixepoch()),
+    queued_at      INTEGER,
+    data           TEXT
   );
 `);
-// Migration: add status column for existing DBs
+// Migrations for existing DBs
 try { db.exec(`ALTER TABLE processed_withdrawals ADD COLUMN status TEXT NOT NULL DEFAULT 'done'`); } catch {}
+try { db.exec(`ALTER TABLE processed_withdrawals ADD COLUMN queued_at INTEGER`); } catch {}
+try { db.exec(`ALTER TABLE processed_withdrawals ADD COLUMN data TEXT`); } catch {}
 
 // Pending queue: events that failed and need retry
 db.exec(`
@@ -121,6 +125,30 @@ function markWithdrawalManual(withdrawNonce, destChainId) {
   `).run(String(withdrawNonce), destChainId);
 }
 
+function markWithdrawalQueued(withdrawNonce, destChainId, data) {
+  db.prepare(`
+    INSERT OR IGNORE INTO processed_withdrawals (withdraw_nonce, dest_chain_id, tx_hash, status, queued_at, data)
+    VALUES (?, ?, NULL, 'queued', unixepoch(), ?)
+  `).run(String(withdrawNonce), destChainId, JSON.stringify(data));
+}
+
+// Returns withdrawals queued >= 24h ago, ready to process
+function getReadyWithdrawals() {
+  return db.prepare(`
+    SELECT withdraw_nonce, dest_chain_id, data
+    FROM processed_withdrawals
+    WHERE status = 'queued' AND queued_at <= unixepoch() - 86400
+    ORDER BY queued_at ASC
+  `).all().map(row => ({ ...row, data: JSON.parse(row.data) }));
+}
+
+function markWithdrawalDone(withdrawNonce, txHash) {
+  db.prepare(`
+    UPDATE processed_withdrawals SET tx_hash = ?, status = 'done', processed_at = unixepoch()
+    WHERE withdraw_nonce = ?
+  `).run(txHash, String(withdrawNonce));
+}
+
 // ─── Pending queue helpers ────────────────────────────────────────────────────
 
 function addPending(type, data) {
@@ -152,6 +180,9 @@ module.exports = {
   isWithdrawalProcessed,
   markWithdrawalProcessed,
   markWithdrawalManual,
+  markWithdrawalQueued,
+  getReadyWithdrawals,
+  markWithdrawalDone,
   addPending,
   getPending,
   incrementAttempts,
