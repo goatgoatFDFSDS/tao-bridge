@@ -285,7 +285,7 @@ export default function MintMilady({ address, signer, chainId, switchChain, conn
         display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12,
       }}>
         {[
-          { label:'Supply',   value:'1100 NFTs' },
+          { label:'Supply',   value:'1111 NFTs' },
           { label:'Price',    value:'0.011 TAO' },
           { label:'Max / tx', value:'10 NFTs' },
           { label:'Chain',    value:'Bittensor EVM' },
