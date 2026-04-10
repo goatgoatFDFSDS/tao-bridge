@@ -109,7 +109,7 @@ export default function MintMilady({ address, signer, chainId, switchChain, conn
             TAO MILADY
           </h1>
           <p style={{ margin:'0 0 16px', color:'rgba(255,255,255,0.45)', fontSize:'0.9rem', textAlign:'center', letterSpacing:'0.08em' }}>
-            1100 UNIQUE NFTs ON BITTENSOR EVM
+            1111 UNIQUE NFTs ON BITTENSOR EVM
           </p>
 
           <a href={TWITTER} target="_blank" rel="noreferrer" style={{
