@@ -309,8 +309,8 @@ export default function App() {
           </button>
 
           <button className={`nav-pill ${page === 'milady' ? 'active' : ''}`}
-            onClick={() => { setPage('milady'); window.history.pushState(null,'','/milady'); }}>
-            TAO Milady
+            onClick={() => { setPage('milady'); window.history.pushState(null,'','/mint'); }}>
+            Mint
           </button>
 
           <button className={`nav-pill ${page === 'mypass' ? 'active' : ''}`}
